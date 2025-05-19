@@ -35,7 +35,13 @@ To verify your Go installation, open a terminal or command prompt and run:
    go version
    ```
 
-## Fundamental Knowledge
+## Code Editor
 
+### VS Code Setup (Recommended for beginners):
+1. Install [Visual Studio Code](https://code.visualstudio.com/)
+2. Install the "Go" extension by Google
+3. When prompted, install all the recommended Go tools
 
-
+### Goland JetBrains (Paid IDE)
+1. Install [Goland](https://www.jetbrains.com/go/)
+2. Sign Up and activate JetBrains account
