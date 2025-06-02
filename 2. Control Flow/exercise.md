@@ -1,4 +1,4 @@
-## Practical Exercises
+## Module 02: Practice Exercises
 
 ### Exercise 1: Password Validator
 Create a program that validates a password based on the following rules:
