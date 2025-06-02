@@ -10,7 +10,7 @@ A comprehensive Golang course is designed to take you from a complete beginner t
 
 ## Contents
 - [0. Init](./0.%20Init)
-- [1. Introduction](./1.%20Introduction)
+- [1. Introduction](./01. Introduction)
 - [2. Function and Pointer](./2.%20Function%20and%20Pointer)
 - [3. Struct and Collection type](./3.%20Struct%20and%20Collection%20type)
 - [4. Interface and Error](./4.%20Interface%20and%20Error)

@@ -1,16 +1,21 @@
-# Module 02: Control Flow in Go
+# Module 02: Control Flow
 
-## Overview
-Control flow structures determine the order in which statements are executed in a program. Go provides clean, efficient control structures that allow you to:
-- Make decisions (conditional statements)
-- Repeat operations (loops)
-- Direct program execution based on multiple conditions (switch statements)
-- Break out of or continue loops (break/continue)
+## Table of Contents
 
-Understanding control flow is essential for writing dynamic, responsive programs that can make decisions and adapt to different inputs or conditions.
+<ol>
+    <li><a href="#objectives">Objective</a></li>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#conditional-statements">Conditional Statements</a></li>
+    <li><a href="#loops">Loops</a></li>
+    <li><a href="#switch">Switch</a></li>
+    <li><a href="#break-and-continue">Break and Continue</a></li>
+    <li><a href="#best-practices">Best Practices</a></li>
+    <li><a href="#common-pitfallsaand-mistakes">Common Pitfalls and Mistakes</a></li>
+    <li><a href="#practice-exercise">Practice Exercise</a></li>
+</ol>
 
-## Learning Objectives
-By the end of this module, you will:
+## Objectives
+
 - Master Go's conditional statements (if, if-else, nested if)
 - Understand Go's unique loop structure and its various forms
 - Use switch statements efficiently for multi-way branching
@@ -18,12 +23,23 @@ By the end of this module, you will:
 - Implement labeled control flow statements for complex scenarios
 - Recognize common control flow patterns and best practices
 
+## Overview
+
+Control flow structures determine the order in which statements are executed in a program. 
+Go provides clean, efficient control structures that allow you to:
+- Make decisions (conditional statements)
+- Repeat operations (loops)
+- Direct program execution based on multiple conditions (switch statements)
+- Break out of or continue loops (break/continue)
+
+Understanding control flow is essential for writing dynamic, 
+responsive programs that can make decisions and adapt to different inputs or conditions.
+
 ## Conditional Statements (if-else)
 
 Conditional statements allow your program to make decisions based on certain conditions.
 
 ### Basic Syntax
-
 ```go
 // Basic if statement
 if condition {
@@ -48,9 +64,7 @@ if condition1 {
 ```
 
 ### Key Features of Go's if Statements
-
-1. **No Parentheses Required**: Unlike many languages, Go doesn't require parentheses around conditions
-
+- **No Parentheses Required**: Unlike many languages, Go doesn't require parentheses around conditions
    ```go
    // Go style (correct)
    if x > 10 {
@@ -62,22 +76,17 @@ if condition1 {
        fmt.Println("x is greater than 10")
    }
    ```
-
-2. **Braces Are Required**: Unlike some languages, the braces `{}` are mandatory even for single-statement blocks
-
-3. **Statement Before Condition**: Go allows you to execute a short statement before the condition
-
+- **Braces Are Required**: Unlike some languages, the braces `{}` are mandatory even for single-statement blocks
+- **Statement Before Condition**: Go allows you to execute a short statement before the condition
    ```go
    if value := calculateValue(); value > threshold {
        fmt.Println("Value exceeds threshold:", value)
    }
    // Note: 'value' is only accessible within this if block
    ```
-
-4. **No Implicit Type Conversion**: Go requires boolean conditions - it won't interpret non-zero values as true
+- **No Implicit Type Conversion**: Go requires boolean conditions - it won't interpret non-zero values as true
 
 ### Example: Simple Grade Calculator
-
 ```go
 // grade_calculator.go
 package main
@@ -119,7 +128,6 @@ func main() {
 ```
 
 ### Example: Statement Before Condition
-
 ```go
 // login_example.go
 package main
@@ -149,12 +157,11 @@ func main() {
 }
 ```
 
-## Loops in Go
+## Loops
 
 Go simplifies looping by providing a single, flexible `for` loop construct that can be used in different ways.
 
 ### Basic Syntax
-
 ```go
 // 1. Traditional C-style for loop
 for initialization; condition; post {
@@ -178,17 +185,12 @@ for index, value := range collection {
 ```
 
 ### Key Features of Go's Loops
-
-1. **Single Loop Construct**: Unlike many other languages, Go has only one loop keyword: `for`
-
-2. **Multiple Loop Forms**: Despite having only one loop keyword, it handles all looping scenarios
-
-3. **Range-based Iteration**: Go provides an elegant way to iterate over arrays, slices, maps, and strings using `range`
-
-4. **No Do-While Loop**: Go doesn't have a do-while loop, but you can emulate it with a for loop and a break statement
+- **Single Loop Construct**: Unlike many other languages, Go has only one loop keyword: `for`
+- **Multiple Loop Forms**: Despite having only one loop keyword, it handles all looping scenarios
+- **Range-based Iteration**: Go provides an elegant way to iterate over arrays, slices, maps, and strings using `range`
+- **No Do-While Loop**: Go doesn't have a do-while loop, but you can emulate it with a for loop and a break statement
 
 ### Example: Traditional For Loop
-
 ```go
 // countdown.go
 package main
@@ -212,7 +214,6 @@ func main() {
 ```
 
 ### Example: While-Like Loop
-
 ```go
 // sum_digits.go
 package main
@@ -237,7 +238,6 @@ func main() {
 ```
 
 ### Example: Infinite Loop with Break
-
 ```go
 // guess_number.go
 package main
@@ -281,7 +281,6 @@ func main() {
 ```
 
 ### Example: For-Range Loop
-
 ```go
 // word_analyzer.go
 package main
@@ -327,12 +326,11 @@ func main() {
 }
 ```
 
-## Switch Statements
+## Switch
 
 Switch statements provide a cleaner way to express multiple conditions compared to long if-else chains.
 
 ### Basic Syntax
-
 ```go
 // 1. Expression switch
 switch expression {
@@ -366,19 +364,13 @@ default:
 ```
 
 ### Key Features of Go's Switch Statement
-
-1. **No Fall-Through**: Unlike C and similar languages, Go doesn't automatically fall through to the next case
-
-2. **Optional Expression**: The switch expression is optional, allowing for condition-based cases
-
-3. **Multiple Values Per Case**: A case can handle multiple values, separated by commas
-
-4. **Type Switching**: Go supports switching based on the type of an interface value
-
-5. **Explicit Fallthrough**: The `fallthrough` keyword can be used when fall-through behavior is desired
+- **No Fall-Through**: Unlike C and similar languages, Go doesn't automatically fall through to the next case
+- **Optional Expression**: The switch expression is optional, allowing for condition-based cases
+- **Multiple Values Per Case**: A case can handle multiple values, separated by commas
+- **Type Switching**: Go supports switching based on the type of an interface value
+- **Explicit Fallthrough**: The `fallthrough` keyword can be used when fall-through behavior is desired
 
 ### Example: Expression Switch
-
 ```go
 // day_type.go
 package main
@@ -412,7 +404,6 @@ func main() {
 ```
 
 ### Example: Type Switch
-
 ```go
 // type_checker.go
 package main
@@ -463,7 +454,6 @@ func main() {
 ```
 
 ### Example: Condition Switch
-
 ```go
 // score_feedback.go
 package main
@@ -495,7 +485,6 @@ func main() {
 ```
 
 ### Example: Fallthrough
-
 ```go
 // fallthrough_demo.go
 package main
@@ -526,11 +515,9 @@ func main() {
 ```
 
 ## Break and Continue
-
 `break` and `continue` statements provide additional control within loops.
 
 ### Break
-
 The `break` statement terminates the current loop or switch statement and transfers control to the statement following the terminated statement.
 
 ```go
@@ -544,7 +531,6 @@ for i := 0; i < 10; i++ {
 ```
 
 ### Continue
-
 The `continue` statement skips the rest of the current iteration and continues with the next iteration of the loop.
 
 ```go
@@ -558,7 +544,6 @@ for i := 0; i < 10; i++ {
 ```
 
 ### Labels with Break and Continue
-
 For nested loops, Go allows you to specify which loop to break from or continue to:
 
 ```go
@@ -575,7 +560,6 @@ OuterLoop:
 ```
 
 ### Example: Finding Prime Numbers
-
 ```go
 // find_primes.go
 package main
@@ -616,7 +600,6 @@ func main() {
 ```
 
 ### Example: Labeled Break
-
 ```go
 // nested_loop_example.go
 package main
@@ -647,7 +630,6 @@ OuterLoop:
 ```
 
 ### Example: Skipping Iterations
-
 ```go
 // skip_multiples.go
 package main
@@ -668,39 +650,33 @@ func main() {
 }
 ```
 
-## Best Practices for Control Flow in Go
+## Best Practices
 
 1. **Keep it Simple**
    - Don't nest too many control structures
    - Extract complex logic into separate functions
    - Consider early returns to reduce nesting
-
-2. **Prefer switch over long if-else chains**
+2. **Prefer switch to long if-else chains**
    - More readable and maintainable
    - Better performance in many cases
    - Clearer intent
-
 3. **Variable Scoping**
    - Use the short statement form `if x := getValue(); x > 10 { ... }` to limit variable scope
    - Variables defined in if statements are only accessible within that block
-
 4. **Infinite Loops**
    - Use `for { ... }` for intentional infinite loops
    - Always ensure there's a way to exit (break, return, os.Exit)
-
 5. **Error Handling**
    - Check for errors immediately after they might occur
    - Use early returns for error cases to avoid nesting
-
-```go
-// Good error handling
-file, err := os.Open(filename)
-if err != nil {
-    return err  // Return early on error
-}
-// Continue with the file...
-```
-
+   ```go
+   // Good error handling
+   file, err := os.Open(filename)
+   if err != nil {
+       return err  // Return early on error
+   }
+   // Continue with the file...
+   ```
 6. **Break & Continue**
    - Use sparingly and with clear intent
    - Consider refactoring if you have many break/continue statements
@@ -710,10 +686,8 @@ if err != nil {
 
 1. **Forgetting Braces**
    - Unlike some languages, Go always requires braces for control structures
-
 2. **Off-by-One Errors**
    - Be careful with loop boundaries, especially when iterating through arrays or slices
-
 3. **Unintended Shadowing**
    ```go
    x := 10
@@ -722,33 +696,29 @@ if err != nil {
    }
    fmt.Println(x)      // Prints 10
    ```
-
 4. **Misplaced Else Clauses**
    - In Go, the `else` must be on the same line as the closing brace of the if statement
-
 5. **Infinity Loops Without Exit Conditions**
    - Always ensure a way to break out of infinite loops
-
 6. **Misusing fallthrough**
    - Remember that fallthrough passes control to the next case unconditionally
 
-## Summary
+## Practice Exercise
+### Exercise 1: Password Validator
+Create a program that validates a password based on the following rules:
+- At least 8 characters long
+- Contains at least one uppercase letter
+- Contains at least one lowercase letter
+- Contains at least one digit
+- Contains at least one special character (!, @, #, $, %, etc.)
 
-In this module, you've learned:
-- How to use conditional statements with if, else if, and else
-- The versatility of Go's for loop structure
-- How to use switch statements for cleaner multi-way branching
-- Controlling loop flow with break and continue
-- Best practices for control flow in Go
+### Exercise 2: FizzBuzz
+Implement the classic FizzBuzz program:
+- Print numbers from 1 to n
+- For multiples of 3, print "Fizz" instead of the number
+- For multiples of 5, print "Buzz" instead of the number
+- For multiples of both 3 and 5, print "FizzBuzz"
 
-Control flow structures are fundamental building blocks for any program. With the knowledge from this module, you can create programs that make decisions, repeat operations, and respond dynamically to different conditions.
-
-## Next Steps
-
-In the next module, we'll explore functions and packages in Go, which will allow you to organize your code better and create reusable components.
-
-## Additional Resources
-
-- [A Tour of Go: Control Flow](https://tour.golang.org/flowcontrol/1)
-- [Effective Go: Control Structures](https://golang.org/doc/effective_go.html#control-structures)
-- [Go by Example: Control Structures](https://gobyexample.com/)
+### Exercise 3: Number Guessing Game
+Create a more advanced number guessing game where the player has to guess a random number within a specified range, 
+with hints and limited attempts.
