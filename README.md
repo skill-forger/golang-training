@@ -11,11 +11,11 @@ A comprehensive Golang course is designed to take you from a complete beginner t
 ## Contents
 - [0. Init](./0.%20Init)
 - [1. Introduction](./01. Introduction)
-- [2. Function and Pointer](./2.%20Function%20and%20Pointer)
+- [2. Function and Pointer](./03. Function and Pointer)
 - [3. Struct and Collection type](./3.%20Struct%20and%20Collection%20type)
 - [4. Interface and Error](./4.%20Interface%20and%20Error)
 - [5. Advance feature](./5.%20Advance%20feature)
-- [6. Http Server](./6.%20Http%20Server)
+- [6. Http Server](./09. Http Server)
 - [7. Http Server (Continue - Gin)](./7.%20Http%20Server%20(Continue%20-%20Gin))
 - [8. ORM (gorm)](./8.%20ORM%20(gorm))
 - [9. Authenticate and Authorization](./9.%20Authenticate%20and%20Authorization)
