@@ -1,6 +1,7 @@
 # Module 01: Introduction to Go Programming
 
 ## Table of Contents
+
 <ol>
     <li><a href="#objectives">Objective</a></li>
     <li><a href="#overview-of-go">Overview of Go</a></li>
@@ -11,9 +12,11 @@
     <li><a href="#variables-and-data-types">Variables and Data Types</a></li>
     <li><a href="#type-conversion">Type Conversion</a></li>
     <li><a href="#common-pitfalls-and-strict-rules">Common Pitfalls and Strict Rules</a></li>
+    <li><a href="#practice-exercise">Practice Exercise</a></li>
 </ol>
 
 ## Objectives
+
 - Understand Go's design philosophy and use cases
 - Write and run your first Go programs
 - Understand package organization and import system
@@ -21,6 +24,7 @@
 - Get familiar with Go's code formatting conventions
 
 ## Overview of Go
+
 Go (or Golang) is an open-source programming language developed by Google in 2007 and released publicly in 2009. 
 It was designed by Robert Griesemer, Rob Pike, and Ken Thompson with the following goals:
 - **Simplicity**: Clean syntax and minimal language features
@@ -31,6 +35,7 @@ It was designed by Robert Griesemer, Rob Pike, and Ken Thompson with the followi
 Go combines the performance of compiled languages like C++ with the simplicity and readability of languages like Python.
 
 ## Why Learn Go
+
 - **Industry Adoption**: Used by companies like Google, Uber, Dropbox, Netflix
 - **Performance**: Excellent for high-performance applications
 - **Concurrency**: Powerful concurrency model with goroutines and channels
@@ -425,3 +430,13 @@ Go enforces several rules that new developers should be aware of:
    }
    // Use result safely knowing it's valid
    ```
+
+## Practice Exercise
+### Exercise 1: Hello, Personalized World
+Create a program that asks for the user's name and then greets them.
+
+### Exercise 2: Simple Calculator
+Create a program that performs basic arithmetic (sum, difference, product, quotient) on two numbers.
+
+### Exercise 3: Type Explorer
+Create a program that demonstrates different data types and their properties.
