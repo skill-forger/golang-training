@@ -3,7 +3,7 @@
 ## Table of Contents
 
 <ol>
-    <li><a href="#objectives">Objective</a></li>
+    <li><a href="#objectives">Objectives</a></li>
     <li><a href="#overview">Overview</a></li>
     <li><a href="#function-eclaration">Function Declaration</a></li>
     <li><a href="#multiple-return-values">Multiple Return Values</a></li>

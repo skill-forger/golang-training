@@ -3,7 +3,7 @@
 ## Table of Contents
 
 <ol>
-    <li><a href="#objectives">Objective</a></li>
+    <li><a href="#objectives">Objectives</a></li>
     <li><a href="#overview">Overview</a></li>
     <li><a href="#conditional-statements">Conditional Statements</a></li>
     <li><a href="#loops">Loops</a></li>
@@ -515,6 +515,7 @@ func main() {
 ```
 
 ## Break and Continue
+
 `break` and `continue` statements provide additional control within loops.
 
 ### Break
@@ -704,6 +705,7 @@ func main() {
    - Remember that fallthrough passes control to the next case unconditionally
 
 ## Practice Exercise
+
 ### Exercise 1: Password Validator
 Create a program that validates a password based on the following rules:
 - At least 8 characters long

@@ -3,7 +3,7 @@
 ## Table of Contents
 
 <ol>
-    <li><a href="#objectives">Objective</a></li>
+    <li><a href="#objectives">Objectives</a></li>
     <li><a href="#overview-of-go">Overview of Go</a></li>
     <li><a href="#why-learn-go">Why Learn Go</a></li>
     <li><a href="#understanding-go-workspace">Understanding Go Workspace</a></li>
