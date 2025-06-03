@@ -23,11 +23,11 @@ A comprehensive Golang course is designed to take you from a complete beginner t
 - [11. Server](./11.%20Server)
 - [12. Server (Gin Gonic)](./12.%20Server%20(Gin%20Gonic))
 - [13. Server (Echo)](./13.%20Server%20(Echo))
-- [14. ORM (gorm)](./14.%20ORM%20(gorm))
+- [14. Object Relational Mapping (gorm)](./14.%20Object%20Relational%20Mapping%20(gorm))
 - [15. Authentication and Authorization](./15.%20Authentication%20and%20Authorization)
 
 ## How to learn
-- Start with the topic `0. Init` to install necessary tools
+- Start with the topic `00. Init` to install necessary tools
 - Read the document in `REAMDE.md` file to learn and understand the knowledge
 - Practice the using language with exercises and examples
 - Refer to Reference Resources section for extra reading

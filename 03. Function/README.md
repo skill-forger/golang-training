@@ -1,9 +1,23 @@
 # Module 03: Functions in Go
 
-## Overview
-Functions are the building blocks of Go programs, providing modularity, reusability, and abstraction. Go's approach to functions emphasizes simplicity and clarity while offering powerful features like multiple return values, variadic parameters, and first-class function support.
+## Table of Contents
 
-## Learning Objectives
+<ol>
+    <li><a href="#objectives">Objective</a></li>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#function-eclaration">Function Declaration</a></li>
+    <li><a href="#multiple-return-values">Multiple Return Values</a></li>
+    <li><a href="#variadic-functions">Variadic Functions</a></li>
+    <li><a href="#anonymous-functions-and-closures">Anonymous Functions and Closures</a></li>
+    <li><a href="#defer-panic-and-recover">Defer Panic and Recover</a></li>
+    <li><a href="#function-types-and-higher-order-functions">Function Types and Higher-Order Functions</a></li>
+    <li><a href="#recursive-functions">Recursive Functions</a></li>
+    <li><a href="#best-practices">Best Practices</a></li>
+    <li><a href="#practice-exercise">Practice Exercise</a></li>
+</ol>
+
+## Objectives
+
 By the end of this module, you will:
 - Understand Go's function declaration syntax and type system
 - Master various parameter and return value patterns
@@ -13,12 +27,18 @@ By the end of this module, you will:
 - Apply function types and higher-order functions
 - Recognize common function design patterns and best practices
 
-## Basic Function Declaration
+## Overview
 
-Go's function declaration syntax is designed for readability and type safety. Unlike some languages, Go uses the `func` keyword and places types after parameter names.
+Functions are the building blocks of Go programs, providing modularity, re-usability, and abstraction. 
+Go's approach to functions emphasizes simplicity and clarity while offering powerful features like multiple return values, 
+variadic parameters, and first-class function support.
+
+## Function Declaration
+
+Go's function declaration syntax is designed for readability and type safety. 
+Unlike some languages, Go uses the `func` keyword and places types after parameter names.
 
 ### Simple Function Syntax
-
 ```go
 // Basic function declaration
 func functionName(parameter1 type1, parameter2 type2) returnType {
@@ -28,7 +48,6 @@ func functionName(parameter1 type1, parameter2 type2) returnType {
 ```
 
 ### Example: Basic Function
-
 ```go
 // simple_function.go
 package main
@@ -47,7 +66,6 @@ func main() {
 ```
 
 ### Compact Parameter Type Declaration
-
 When consecutive parameters share the same type, you can declare the type just once after the last parameter in the group:
 
 ```go
@@ -64,10 +82,10 @@ func multiply(a, b int) int {
 
 ## Multiple Return Values
 
-One of Go's most distinctive features is its ability to return multiple values from a function, which is especially useful for returning results along with error information.
+One of Go's most distinctive features is its ability to return multiple values from a function, 
+which is especially useful for returning results along with error information.
 
 ### Basic Syntax
-
 ```go
 func functionName(parameters) (returnType1, returnType2) {
     // Function body
@@ -76,7 +94,6 @@ func functionName(parameters) (returnType1, returnType2) {
 ```
 
 ### Example: Returning a Result and Error
-
 ```go
 // divide.go
 package main
@@ -114,8 +131,8 @@ func main() {
 ```
 
 ### Named Return Values
-
-Go allows you to name your return values, which creates variables that you can assign to within the function and implicitly return with a "naked" return statement:
+Go allows you to name your return values, 
+which creates variables that you can assign to within the function and implicitly return with a "naked" return statement:
 
 ```go
 // calculate.go
@@ -153,14 +170,14 @@ func main() {
 - In longer functions where the return values are modified throughout
 
 #### Best Practice:
-While named returns with naked returns are convenient, they should be used judiciously. For simple, short functions, explicit returns often provide better clarity.
+While named returns with naked returns are convenient, they should be used judiciously. 
+For simple, short functions, explicit returns often provide better clarity.
 
 ## Variadic Functions
 
 Variadic functions can accept a variable number of arguments, making them flexible for different calling scenarios.
 
 ### Syntax
-
 ```go
 func functionName(param1 type1, params ...type) returnType {
     // params is a slice of type
@@ -168,7 +185,6 @@ func functionName(param1 type1, params ...type) returnType {
 ```
 
 ### Example: Basic Variadic Function
-
 ```go
 // sum_variadic.go
 package main
@@ -200,7 +216,6 @@ func main() {
 ```
 
 ### Combining Regular and Variadic Parameters
-
 Variadic parameters must be the last parameter in the function signature:
 
 ```go
@@ -227,11 +242,9 @@ func main() {
 ```
 
 ## Anonymous Functions and Closures
-
 Go supports anonymous functions (functions without names) that can be assigned to variables, passed as arguments, or returned from other functions.
 
 ### Anonymous Function Syntax
-
 ```go
 // Assigning to a variable
 functionVar := func(parameters) returnType {
@@ -245,7 +258,6 @@ func(parameters) returnType {
 ```
 
 ### Example: Basic Anonymous Function
-
 ```go
 // anonymous_functions.go
 package main
@@ -270,7 +282,6 @@ func main() {
 ```
 
 ### Closures
-
 A closure is a function that references variables from outside its body. The function may access and assign to the referenced variables.
 
 ```go
@@ -299,7 +310,6 @@ func main() {
 ```
 
 ### Example: Creating a Counter Function
-
 ```go
 // counter_generator.go
 package main
@@ -331,13 +341,12 @@ func main() {
 }
 ```
 
-## Defer, Panic, and Recover
-
+## Defer Panic and Recover
 Go provides mechanisms for controlling execution flow in exceptional situations and for cleanup operations.
 
 ### Defer
-
-The `defer` statement schedules a function call to be executed immediately before the surrounding function returns, regardless of whether it returns normally or with an error.
+The `defer` statement schedules a function call to be executed immediately before the surrounding function returns, 
+regardless of whether it returns normally or with an error.
 
 ```go
 // defer_example.go
@@ -361,13 +370,12 @@ This executes last
 */
 ```
 
-#### Common Uses for Defer:
+#### Common use cases for Defer:
 - Resource cleanup (closing files, network connections)
 - Unlocking mutexes
 - Executing required operations regardless of which path a function takes to return
 
 ### Example: File Operations with Defer
-
 ```go
 // file_with_defer.go
 package main
@@ -408,8 +416,8 @@ func main() {
 ```
 
 ### Panic
-
-Panic is a built-in function that stops the normal execution of the current goroutine. When a function calls `panic`, normal execution stops, deferred functions are executed, and control returns to the caller.
+Panic is a built-in function that stops the normal execution of the current goroutine. 
+When a function calls `panic`, normal execution stops, deferred functions are executed, and control returns to the caller.
 
 ```go
 // panic_example.go
@@ -446,8 +454,8 @@ main.divide(...)
 ```
 
 ### Recover
-
-Recover is a built-in function that regains control of a panicking goroutine. It's only useful inside deferred functions.
+Recover is a built-in function that regains control of a panicking goroutine. 
+It's only useful inside deferred functions.
 
 ```go
 // recover_example.go
@@ -491,7 +499,6 @@ In Go, functions are first-class citizens, which means:
 - Functions can be returned from other functions
 
 ### Function Types
-
 A function type defines the signature of a function without specifying its implementation:
 
 ```go
@@ -520,11 +527,9 @@ func main() {
 ```
 
 ### Higher-Order Functions
-
 Higher-order functions either take functions as arguments or return functions:
 
 #### Example: Function That Returns a Function
-
 ```go
 // higher_order.go
 package main
@@ -551,7 +556,6 @@ func main() {
 ```
 
 #### Example: Functional Programming
-
 ```go
 // functional_example.go
 package main
@@ -606,7 +610,6 @@ func main() {
 ```
 
 ## Recursive Functions
-
 A recursive function is one that calls itself directly or indirectly:
 
 ```go
@@ -646,10 +649,10 @@ func main() {
 ```
 
 ### Note on Recursive Functions in Go
+While Go supports recursion, it doesn't optimize tail recursion like some functional languages do. 
+For deep recursion, consider using iteration or implementing continuation-passing style to avoid stack overflow.
 
-While Go supports recursion, it doesn't optimize tail recursion like some functional languages do. For deep recursion, consider using iteration or implementing continuation-passing style to avoid stack overflow.
-
-## Best Practices for Go Functions
+## Best Practices
 
 ### 1. Single Responsibility
 Each function should have a single, well-defined purpose.
@@ -745,24 +748,46 @@ func CalculateDiscount(total float64, customerType string) (float64, error) {
 }
 ```
 
-## Summary
+## Practice Exercise
 
-In this module, you've learned:
-- How to declare and use functions in Go
-- Working with multiple return values and named returns
-- Using variadic functions for flexible parameter counts
-- Creating and using anonymous functions and closures
-- Controlling execution flow with defer, panic, and recover
-- Treating functions as first-class values with function types
-- Implementing higher-order functions that operate on other functions
-- Best practices for function design and implementation
+### Exercise 1: Utility Functions Library
+Create a library of simple utility functions that can be used for common tasks. 
+This exercise will help you practice defining and organizing functions in Go.
 
-Functions are the fundamental building blocks of Go programs. Mastering function concepts allows you to write clean, modular, and reusable code. In the next module, we'll explore how to organize related functions into packages and explore Go's package system.
+Specifically, you need to:
+1. Create a `StringUtils` type with methods for string manipulation:
+    - A `Reverse` function that reverses the characters in a string
+    - An `IsPalindrome` function that checks if a string reads the same forward and backward
 
-## Additional Resources
+2. Create a `MathUtils` type with methods for mathematical operations:
+    - A `Factorial` function that calculates n! (factorial) for a given number
+    - An `IsPrime` function that determines whether a number is prime
 
-- [A Tour of Go: Functions](https://tour.golang.org/basics/4)
-- [Effective Go: Functions](https://golang.org/doc/effective_go.html#functions)
-- [Go by Example: Functions](https://gobyexample.com/functions)
-- [Go by Example: Closures](https://gobyexample.com/closures)
-- [Go by Example: Recursion](https://gobyexample.com/recursion)
+3. Test each function in the `main` function with example inputs to demonstrate how they work
+
+### Exercise 2: Function Composition
+Practice creating higher-order functions that compose various operations. 
+This exercise will introduce you to functional programming concepts in Go 
+where functions can be passed as arguments and returned as values.
+
+Implement the following:
+1. Create function types (`StringProcessor` and `IntProcessor`) that represent functions which transform strings and integers
+2. Implement a `ComposeStringProcessors` function that combines two string processing functions into a single function
+3. Implement a `Chain` function that applies multiple string processors in sequence
+4. Create example string processors (trim spaces, convert to uppercase, reverse string)
+5. Demonstrate function composition by creating and applying composed functions to test data
+
+### Exercise 3: Advanced Calculator with Function Types
+Build a flexible calculator application that can be extended with new operations. 
+This exercise demonstrates how to use function types to create a plugin architecture.
+
+Your implementation should:
+1. Define an `Operation` function type that takes two float64 values and returns a result with a possible error
+2. Implement basic arithmetic operations (Add, Subtract, Multiply, Divide, Power)
+3. Create a `Calculator` struct that stores operations mapped to symbol strings
+4. Include a method to register new operations at runtime
+5. Implement a Calculate method that performs the specified operation by symbol
+6. Demonstrate the calculator by:
+    - Performing basic operations
+    - Adding a custom operation (e.g., average)
+    - Handling errors (e.g., division by zero)
