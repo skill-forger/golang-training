@@ -1,9 +1,24 @@
 # Module 07: Error Handling in Go
 
-## Overview
-Error handling is a critical aspect of writing reliable, maintainable Go programs. Unlike many modern languages that use exceptions for error handling, Go takes a different approach by treating errors as values that are explicitly returned, checked, and handled. This philosophy aligns with Go's emphasis on explicitness and simplicity.
+## Table of Contents
 
-## Learning Objectives
+<ol>
+    <li><a href="#objectives">Objectives</a></li>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#go-error-handling-philosophy">Go Error Handling Philosophy</a></li>
+    <li><a href="#basic-error-handling">Basic Error Handling</a></li>
+    <li><a href="#custom-error-types">Custom Error Types</a></li>
+    <li><a href="#error-wrapping-and-context">Error Wrapping and Context</a></li>
+    <li><a href="#error-handling-patterns">Error Handling Patterns</a></li>
+    <li><a href="#panic-and-recover">Panic and Recover</a></li>
+    <li><a href="#common-mistakes">Common Mistakes</a></li>
+    <li><a href="#error-handling-in-concurrency">Error Handling in Concurrency</a></li>
+    <li><a href="#best-practices">Best Practices</a></li>
+    <li><a href="#practice-exercises">Practice Exercises</a></li>
+</ol>
+
+## Objectives
+
 By the end of this module, you will:
 - Understand Go's error handling philosophy and approach
 - Master the error interface and its implementations
@@ -13,10 +28,16 @@ By the end of this module, you will:
 - Use advanced error handling including panic and recover
 - Avoid common error handling pitfalls
 
-## The Go Error Handling Philosophy
+## Overview
+
+Error handling is a critical aspect of writing reliable, maintainable Go programs. 
+Unlike many modern languages that use exceptions for error handling, 
+Go takes a different approach by treating errors as values that are explicitly returned, checked, and handled. 
+This philosophy aligns with Go's emphasis on explicitness and simplicity.
+
+## Go Error Handling Philosophy
 
 ### Errors as Values
-
 The cornerstone of Go's error handling is that errors are just values - not special exceptions or control flow mechanisms. This means errors are:
 
 - Returned from functions like any other value
@@ -25,7 +46,6 @@ The cornerstone of Go's error handling is that errors are just values - not spec
 - Can be created, stored, and manipulated like any other value
 
 ### The Error Interface
-
 At the core of Go's error handling is the built-in `error` interface:
 
 ```go
@@ -40,7 +60,6 @@ This simple interface has just one method that returns a string description of t
 ## Basic Error Handling
 
 ### Returning and Checking Errors
-
 ```go
 // basic_errors.go
 package main
@@ -83,7 +102,6 @@ func main() {
 ```
 
 ### Creating Errors
-
 Go offers several ways to create errors:
 
 ```go
@@ -159,13 +177,12 @@ func main() {
 ```
 
 ### Benefits of Custom Error Types
-
 1. **Richer Context**: Include fields that provide additional information
 2. **Type Safety**: Handle specific error types differently
 3. **Behavior**: Add methods for special error handling
 4. **Semantic Clarity**: Make error types that match your domain
 
-## Error Wrapping and Context (Go 1.13+)
+## Error Wrapping and Context
 
 Go 1.13 introduced better error wrapping capabilities:
 
@@ -218,15 +235,12 @@ func main() {
 ```
 
 ### The Wrapping Mechanism
-
 Error wrapping lets you:
-
 1. **Add Context**: Enrich errors as they travel up the call stack
 2. **Preserve Original Errors**: Keep underlying errors for precise checks
 3. **Create Error Chains**: Build a chain of wrapped errors for detailed tracking
 
 ### Checking Wrapped Errors
-
 Go 1.13 added two key functions for working with wrapped errors:
 
 - `errors.Is(err, target)`: Checks if `err` or any error it wraps equals `target`
@@ -284,7 +298,6 @@ func main() {
 ## Error Handling Patterns
 
 ### The Sentinel Error Pattern
-
 Sentinel errors are predefined error values that can be compared directly:
 
 ```go
@@ -356,7 +369,6 @@ func main() {
 ```
 
 ### Error Handling in HTTP Servers
-
 Error handling in web applications has specific patterns:
 
 ```go
@@ -475,121 +487,13 @@ func main() {
 ```
 
 ### When to Use Panic and Recover
-
 - **Use panic**: For truly exceptional conditions that should not be handled normally
 - **Use recover**: To prevent a panic from crashing your entire program
 - **Prefer error returns**: For most error conditions that can be reasonably expected
 
-## Best Practices for Error Handling
-
-### 1. Be Explicit and Check Errors
-
-Always check returned errors and handle them appropriately:
-
-```go
-file, err := os.Open("file.txt")
-if err != nil {
-    // Handle the error - never ignore it!
-    log.Printf("Error opening file: %v", err)
-    return
-}
-defer file.Close()
-```
-
-### 2. Add Context to Errors
-
-Make errors more informative by adding context:
-
-```go
-func processConfig(path string) error {
-    data, err := readFile(path)
-    if err != nil {
-        return fmt.Errorf("config processing failed: %w", err)
-    }
-    // Process data...
-    return nil
-}
-```
-
-### 3. Design Error Types for Your Domain
-
-Create error types that match your application's domain:
-
-```go
-type DatabaseError struct {
-    Query  string
-    Err    error
-    Table  string
-    UserID string
-}
-
-func (e *DatabaseError) Error() string {
-    return fmt.Sprintf("database error on table %s: %v", e.Table, e.Err)
-}
-
-func (e *DatabaseError) Unwrap() error {
-    return e.Err
-}
-```
-
-### 4. Handle Errors at the Appropriate Level
-
-Not every function needs to handle every error:
-
-```go
-// Low-level function just returns the error
-func readUserData(id string) ([]byte, error) {
-    return ioutil.ReadFile("users/" + id + ".json")
-}
-
-// Mid-level function adds context but doesn't handle
-func getUserProfile(id string) (*Profile, error) {
-    data, err := readUserData(id)
-    if err != nil {
-        return nil, fmt.Errorf("get profile %s failed: %w", id, err)
-    }
-    // Process data...
-    return profile, nil
-}
-
-// High-level function handles the error appropriately
-func handleUserRequest(w http.ResponseWriter, id string) {
-    profile, err := getUserProfile(id)
-    if err != nil {
-        if errors.Is(err, os.ErrNotExist) {
-            http.Error(w, "User not found", http.StatusNotFound)
-        } else {
-            http.Error(w, "Internal error", http.StatusInternalServerError)
-            log.Printf("User request failed: %v", err)
-        }
-        return
-    }
-    // Use profile...
-}
-```
-
-### 5. Only Use Panic for Truly Unrecoverable Situations
-
-Reserve panic for programmer errors or truly exceptional conditions:
-
-```go
-func MustCompileRegex(pattern string) *regexp.Regexp {
-    re, err := regexp.Compile(pattern)
-    if err != nil {
-        // This is a programmer error - the pattern should be valid
-        panic(fmt.Sprintf("Invalid regex pattern %q: %v", pattern, err))
-    }
-    return re
-}
-
-// Expected to be used in initialization, not regular operation
-var validNameRe = MustCompileRegex(`^[a-zA-Z][a-zA-Z0-9_]{2,29}$`)
-```
-
-## Common Error Handling Mistakes
+## Common Mistakes
 
 ### 1. Ignoring Errors
-
 ```go
 // BAD: Error ignored
 file, _ := os.Open("config.txt") // Don't do this!
@@ -604,7 +508,6 @@ if err != nil {
 ```
 
 ### 2. Using String Comparison for Error Checking
-
 ```go
 // BAD: Comparing error strings
 if err != nil && err.Error() == "file not found" {
@@ -618,7 +521,6 @@ if err != nil && errors.Is(err, os.ErrNotExist) {
 ```
 
 ### 3. Insufficient Error Context
-
 ```go
 // BAD: Generic error
 return errors.New("operation failed")
@@ -628,7 +530,6 @@ return fmt.Errorf("user update failed for ID %s: %w", userID, err)
 ```
 
 ### 4. Excessive Panic Usage
-
 ```go
 // BAD: Using panic for normal error conditions
 func getData(id string) []byte {
@@ -645,7 +546,7 @@ func getData(id string) ([]byte, error) {
 }
 ```
 
-## Error Handling in Concurrent Code
+## Error Handling in Concurrency
 
 Error handling in goroutines requires special attention:
 
@@ -715,25 +616,172 @@ func main() {
 }
 ```
 
-## Summary
+## Best Practices
 
-In this module, you've learned:
-- Go's error handling philosophy and the error interface
-- How to create, return, and check errors properly
-- Techniques for creating custom error types
-- Using error wrapping to add context while preserving the original error
-- Advanced error checking with errors.Is and errors.As
-- When and how to use panic and recover appropriately
-- Best practices for robust error handling
-- Common error handling patterns and mistakes to avoid
+### 1. Be Explicit and Check Errors
+Always check returned errors and handle them appropriately:
 
-Error handling might seem verbose at first, but Go's approach leads to more explicit, predictable, and maintainable code. By treating errors as values and handling them deliberately, you create more robust programs with clearer error handling flows.
+```go
+file, err := os.Open("file.txt")
+if err != nil {
+    // Handle the error - never ignore it!
+    log.Printf("Error opening file: %v", err)
+    return
+}
+defer file.Close()
+```
 
-## Additional Resources
+### 2. Add Context to Errors
+Make errors more informative by adding context:
 
-- [Go Blog: Error Handling and Go](https://blog.golang.org/error-handling-and-go)
-- [Go Blog: Working with Errors in Go 1.13](https://blog.golang.org/go1.13-errors)
-- [Official Errors Package Documentation](https://golang.org/pkg/errors/)
-- [Effective Go: Errors](https://golang.org/doc/effective_go.html#errors)
-- [Dave Cheney's blog on errors](https://dave.cheney.net/tag/error-handling)
-- [Error handling best practices in Go](https://golangbot.com/error-handling/)
+```go
+func processConfig(path string) error {
+    data, err := readFile(path)
+    if err != nil {
+        return fmt.Errorf("config processing failed: %w", err)
+    }
+    // Process data...
+    return nil
+}
+```
+
+### 3. Design Error Types for Your Domain
+Create error types that match your application's domain:
+
+```go
+type DatabaseError struct {
+    Query  string
+    Err    error
+    Table  string
+    UserID string
+}
+
+func (e *DatabaseError) Error() string {
+    return fmt.Sprintf("database error on table %s: %v", e.Table, e.Err)
+}
+
+func (e *DatabaseError) Unwrap() error {
+    return e.Err
+}
+```
+
+### 4. Handle Errors at the Appropriate Level
+Not every function needs to handle every error:
+
+```go
+// Low-level function just returns the error
+func readUserData(id string) ([]byte, error) {
+    return ioutil.ReadFile("users/" + id + ".json")
+}
+
+// Mid-level function adds context but doesn't handle
+func getUserProfile(id string) (*Profile, error) {
+    data, err := readUserData(id)
+    if err != nil {
+        return nil, fmt.Errorf("get profile %s failed: %w", id, err)
+    }
+    // Process data...
+    return profile, nil
+}
+
+// High-level function handles the error appropriately
+func handleUserRequest(w http.ResponseWriter, id string) {
+    profile, err := getUserProfile(id)
+    if err != nil {
+        if errors.Is(err, os.ErrNotExist) {
+            http.Error(w, "User not found", http.StatusNotFound)
+        } else {
+            http.Error(w, "Internal error", http.StatusInternalServerError)
+            log.Printf("User request failed: %v", err)
+        }
+        return
+    }
+    // Use profile...
+}
+```
+
+### 5. Only Use Panic for Truly Unrecoverable Situations
+Reserve panic for programmer errors or truly exceptional conditions:
+
+```go
+func MustCompileRegex(pattern string) *regexp.Regexp {
+    re, err := regexp.Compile(pattern)
+    if err != nil {
+        // This is a programmer error - the pattern should be valid
+        panic(fmt.Sprintf("Invalid regex pattern %q: %v", pattern, err))
+    }
+    return re
+}
+
+// Expected to be used in initialization, not regular operation
+var validNameRe = MustCompileRegex(`^[a-zA-Z][a-zA-Z0-9_]{2,29}$`)
+```
+
+## Practice Exercises
+
+### Exercise 1: Building a Robust API Client
+Create a resilient API client that demonstrates comprehensive error handling practices in Go.
+This exercise will teach you how to design clear error types,
+use the error wrapping features, and implement error-based control flow.
+
+Your implementation should include:
+1. Custom error types that:
+    - Include relevant contextual information (status code, URL, message)
+    - Implement the `Error()` method for clear error messages
+    - Support unwrapping via the `Unwrap()` method
+2. Sentinel (predefined) errors for common error conditions:
+    - `ErrNotFound` for missing resources
+    - `ErrUnauthorized` for authentication failures
+    - `ErrTimeout` for request timeouts
+3. An `APIClient` struct with methods for:
+    - Making HTTP requests with proper error handling
+    - Handling different error cases (timeouts, HTTP error codes)
+    - Wrapping underlying errors with context
+4. A demonstration showing:
+    - Proper error checking with specific error types
+    - Using `errors.Is()` to check for sentinel errors
+    - Using `errors.As()` to extract information from custom errors
+    - Providing appropriate feedback based on error types
+
+### Exercise 2: Database Connection with Error Recovery
+Develop a database connection manager that handles various error scenarios and implements automatic recovery strategies.
+This exercise shows how to use errors to make robust systems that can recover from failures.
+
+Your implementation should include:
+1. Custom error types for different database issues:
+    - Connection errors
+    - Query execution errors
+    - Transaction errors
+2. A `DBConnector` that manages database connections with:
+    - Connection retry logic with exponential backoff
+    - Transaction handling with proper rollback on errors
+    - Query execution with timeout handling
+3. A `QueryExecutor` interface with implementations for:
+    - Basic queries
+    - Prepared statements
+    - Transactions
+4. A demonstration showing:
+    - Handling temporary network failures
+    - Automatic reconnection after errors
+    - Transaction rollback on errors
+    - Proper resource cleanup
+
+### Exercise 3: File Processing with Error Logging
+Build a file processing system that demonstrates advanced error handling techniques,
+including logging, error wrapping, and recovery mechanisms.
+This exercise shows how to handle I/O errors and create user-friendly error messages.
+
+Your implementation should include:
+1. A hierarchical error handling system with:
+    - Base error types for I/O operations
+    - Specialized errors for different file processing stages
+    - Error aggregation for batch operations
+2. A structured logging system that:
+    - Records errors with appropriate context
+    - Categorizes errors by severity
+    - Provides detailed debugging information
+3. Recovery mechanisms that:
+    - Skip problematic files and continue processing others
+    - Attempt alternative processing methods when primary methods fail
+    - Clean up resources even when errors occur
+4. A demonstration that processes multiple files and shows how the system handles various error conditions
