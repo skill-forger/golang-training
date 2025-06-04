@@ -1,9 +1,21 @@
 # Module 06: Structs in Go
 
-## Overview
-Structs are one of Go's most powerful features, allowing you to create custom data types by grouping related data together. They form the foundation of object-oriented programming in Go and enable you to model complex real-world entities in your code. While Go isn't traditionally considered an object-oriented language, structs with methods provide many of the same capabilities in a simpler, more direct approach.
+## Table of Contents
 
-## Learning Objectives
+<ol>
+    <li><a href="#objectives">Objectives</a></li>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#what-are-structs">What are Structs</a></li>
+    <li><a href="#struct-methods-adding-behavior">Struct Methods: Adding Behavior</a></li>
+    <li><a href="#struct-composition-building-complex-types">Struct Composition: Building Complex Types</a></li>
+    <li><a href="#struct-tags-metadata-and-serialization">Struct Tags: Metadata and Serialization</a></li>
+    <li><a href="#advanced-techniques">Advanced Techniques</a></li>
+    <li><a href="#best-practices">Best Practices</a></li>
+    <li><a href="#practice-exercises">Practice Exercises</a></li>
+</ol>
+
+## Objectives
+
 By the end of this module, you will:
 - Understand how to define and use structs to model complex data
 - Create methods that operate on struct data
@@ -11,10 +23,20 @@ By the end of this module, you will:
 - Use struct tags for metadata and serialization
 - Apply best practices for designing and organizing struct-based code
 - Implement practical applications using structs
+- 
+## Overview
 
-## What are Structs?
+Structs are one of Go's most powerful features, 
+allowing you to create custom data types by grouping related data together. 
+They form the foundation of object-oriented programming in Go 
+and enable you to model complex real-world entities in your code. 
+While Go isn't traditionally considered an object-oriented language, 
+structs with methods provide many of the same capabilities in a simpler, more direct approach.
 
-Structs are user-defined types that group together variables of different data types under a single name. Think of them as blueprints for creating data objects that represent real-world entities or concepts.
+## What are Structs
+
+Structs are user-defined types that group together variables of different data types under a single name. 
+Think of them as blueprints for creating data objects that represent real-world entities or concepts.
 
 ### Basic Struct Definition and Instantiation
 
@@ -62,7 +84,6 @@ func main() {
 ```
 
 ### Struct Field Visibility
-
 Go controls access to struct fields through capitalization:
 
 ```go
@@ -103,10 +124,10 @@ func main() {
 
 ## Struct Methods: Adding Behavior
 
-While structs define data, methods define behavior. Go lets you attach methods to struct types, creating an elegant way to encapsulate both data and operations.
+While structs define data, methods define behavior. Go lets you attach methods to struct types, 
+creating an elegant way to encapsulate both data and operations.
 
 ### Value Receivers vs Pointer Receivers
-
 ```go
 // struct_methods.go
 package main
@@ -147,7 +168,6 @@ func main() {
 ```
 
 ### When to Use Value vs Pointer Receivers
-
 - **Use value receivers when:**
   - The method doesn't modify the receiver
   - The struct is small and cheap to copy
@@ -160,10 +180,10 @@ func main() {
 
 ## Struct Composition: Building Complex Types
 
-Go favors composition over inheritance. Instead of creating complex inheritance hierarchies, you can embed one struct inside another to reuse fields and methods.
+Go favors composition over inheritance. Instead of creating complex inheritance hierarchies, 
+you can embed one struct inside another to reuse fields and methods.
 
 ### Basic Composition with Embedding
-
 ```go
 // composition.go
 package main
@@ -232,7 +252,6 @@ Composition offers several advantages over traditional inheritance:
 4. **Simplicity**: Easier to understand and maintain
 
 ### Method Overriding with Composition
-
 ```go
 // method_override.go
 package main
@@ -279,7 +298,6 @@ func main() {
 Struct tags provide metadata about struct fields, commonly used for tasks like serialization, validation, and database mapping.
 
 ### JSON Serialization with Struct Tags
-
 ```go
 // json_tags.go
 package main
@@ -355,7 +373,6 @@ func main() {
 ```
 
 ### Common Tag Formats
-
 - **JSON**: `json:"fieldname,options"`
 - **XML**: `xml:"fieldname,options"`
 - **YAML**: `yaml:"fieldname,options"`
@@ -363,10 +380,9 @@ func main() {
 - **Validate**: `validate:"required,min=1,max=100"`
 - **GORM (ORM)**: `gorm:"column:fieldname;type:varchar(100);unique_index"`
 
-## Advanced Struct Techniques
+## Advanced Techniques
 
 ### Anonymous Structs for Temporary Use
-
 ```go
 // anonymous_struct.go
 package main
@@ -401,7 +417,6 @@ func main() {
 ```
 
 ### Struct Equality and Comparison
-
 ```go
 // struct_comparison.go
 package main
@@ -463,7 +478,6 @@ func main() {
 ```
 
 ### Constructor Functions for Structs
-
 ```go
 // constructor.go
 package main
@@ -514,28 +528,23 @@ func main() {
 }
 ```
 
-## Best Practices for Using Structs
-
+## Best Practices
 1. **Design for Clarity**
    - Keep structs focused on a single responsibility
    - Use meaningful field and method names
    - Document complex or non-obvious fields
-
 2. **Choose Receivers Appropriately**
    - Use pointer receivers for methods that modify state
    - Use value receivers for immutable operations
    - Be consistent within a struct's method set
-
 3. **Leverage Composition**
-   - Prefer composition over complex type hierarchies
+   - Prefer composition to complex type hierarchies
    - Use embedding to reuse code without inheritance
    - Keep embedded types orthogonal (separate concerns)
-
 4. **Encapsulation**
    - Use unexported fields to hide implementation details
    - Provide methods or exported fields for controlled access
    - Create constructor functions for complex initialization
-
 5. **Optimizations**
    - Order struct fields to minimize memory padding (largest to smallest)
    - Use pointers for large structs to avoid copying
@@ -543,53 +552,53 @@ func main() {
 
 ## Practice Exercises
 
-### Exercise 1: Employee Management System
+### Exercise 1: Building a Library Management System
+Design and implement a library management system using structs and methods.
+This exercise will help you understand how to model real-world entities as structs and implement operations as methods.
 
-Create a program that manages employees in a company. Implement the following:
+Your system should include:
+1. A `Book` struct with fields for ID, title, author, publication year, and availability status
+2. A `Member` struct with fields for ID, name, email, join date, books borrowed, and borrowing limit
+3. A `BorrowRecord` struct to track book loans, including borrow date and due date
+4. A `Library` struct that manages books, members, and borrowing records
+5. Methods to:
+    - Add books and members to the library
+    - Allow members to borrow books with appropriate validation
+    - Process book returns
+    - Display library status
+6. Error handling for various scenarios (book not found, unavailable books, etc.)
+7. A demonstration in the `main` function showing the complete workflow
 
-- `Employee` struct with fields for name, position, salary, etc.
-- `Department` struct that contains employees
-- Methods for hiring, promoting, and transferring employees
-- Implement sorting employees by different criteria (name, salary, etc.)
+### Exercise 2: Employee Management System
+Create a comprehensive employee management system that models an organization's structure.
+This exercise will demonstrate how structs can represent complex relationships and operations.
 
-### Exercise 2: Shape Hierarchy
+Your implementation should include:
+1. An `Address` struct for storing location information
+2. An `Employee` struct with personal details, employment information, and a nested Address
+3. A `Company` struct for managing employees and department organization
+4. Methods for:
+    - Adding employees to the company
+    - Updating employee salaries
+    - Transferring employees between departments
+    - Marking employees as inactive (terminated)
+    - Generating department statistics
+5. Helper methods for employees (e.g., `FullName()`, `YearsOfService()`)
+6. A demonstration showing typical HR operations
 
-Create a geometry calculation system with:
+### Exercise 3: Product Inventory System
+Develop an inventory management system for tracking products, stock levels, and transactions.
+This exercise will show how to use structs to model a business system with complex operations.
 
-- A `Shape` interface with methods for calculating area and perimeter
-- Structs for different shapes (Circle, Rectangle, Triangle)
-- Methods to implement the Shape interface for each struct
-- Functions that can operate on any shape
-
-### Exercise 3: E-Commerce Cart System
-
-Implement a shopping cart system:
-
-- `Product` struct with price, name, SKU
-- `CartItem` struct that references a product and quantity
-- `ShoppingCart` struct that manages a collection of cart items
-- Methods for adding, removing, updating quantities
-- Calculate subtotals, taxes, and final prices
-
-## Summary
-
-In this module, you've learned:
-- How to define and use structs to model complex data
-- Adding behavior to structs with methods
-- Implementing composition with embedded structs
-- Using struct tags for serialization and metadata
-- Advanced struct techniques for comparison and construction
-- Applying best practices for struct design
-- Building real-world applications using structs
-
-Structs are at the heart of Go's approach to programming with types. By mastering structs, you gain the ability to model almost any kind of data and build sophisticated, maintainable programs.
-
-## Additional Resources
-
-- [A Tour of Go: Structs](https://tour.golang.org/moretypes/2)
-- [Effective Go: Structs](https://golang.org/doc/effective_go.html#structs)
-- [Go by Example: Structs](https://gobyexample.com/structs)
-- [Go by Example: Methods](https://gobyexample.com/methods)
-- [Go by Example: Embedding](https://gobyexample.com/struct-embedding)
-- [Practical Go: Real World Advice](https://dave.cheney.net/practical-go/presentations/qcon-china.html)
-- [Package encoding/json](https://golang.org/pkg/encoding/json/) - For struct tags and serialization
+Your system should include:
+1. A `Product` struct with detailed product information (SKU, name, description, pricing, stock levels)
+2. A `Transaction` struct that records inventory changes (purchases, sales, adjustments)
+3. An `Inventory` struct that manages products and their transaction history
+4. Methods to:
+    - Add new products to inventory
+    - Record product purchases (stock increases)
+    - Record product sales (stock decreases) with validation
+    - Adjust stock levels (e.g., after inventory count)
+    - Generate reports (low stock products, inventory value)
+5. Helper methods for products (e.g., calculating profit margins, checking reorder needs)
+6. A demonstration that includes various inventory operations and reporting
