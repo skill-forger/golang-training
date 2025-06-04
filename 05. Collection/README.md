@@ -1,9 +1,21 @@
 # Module 05: Collection Types in Go
 
-## Overview
-Collections are fundamental to nearly all programming tasks, allowing us to store, organize, and manipulate groups of data efficiently. Go provides three primary collection types: arrays, slices, and maps, each with distinct characteristics and use cases. Understanding these collection types and their behaviors is essential for writing effective Go programs.
+## Table of Contents
 
-## Learning Objectives
+<ol>
+    <li><a href="#objectives">Objectives</a></li>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#arrays-fixed-size-sequences">Arrays: Fixed-Size Sequences</a></li>
+    <li><a href="#slices-dynamic-and-flexible">Slices: Dynamic and Flexible</a></li>
+    <li><a href="#maps-key-value-collections">Maps: Key-Value Collections</a></li>
+    <li><a href="#collection-type-comparison">Collection Type Comparison</a></li>
+    <li><a href="#common-patterns-and-idioms">Common Patterns and Idioms</a></li>
+    <li><a href="#best-practices">Best Practices</a></li>
+    <li><a href="#practice-exercises">Practice Exercises</a></li>
+</ol>
+
+## Objectives
+
 By the end of this module, you will:
 - Understand the differences between arrays, slices, and maps
 - Master the creation and manipulation of fixed-size arrays
@@ -13,12 +25,20 @@ By the end of this module, you will:
 - Implement efficient algorithms using Go's collection types
 - Recognize which collection type to use for different scenarios
 
-## 1. Arrays: Fixed-Size Sequences
+## Overview
 
-Arrays in Go are fixed-length sequences of elements of a single type. Their size is part of the type declaration and cannot change during execution.
+Collections are fundamental to nearly all programming tasks, 
+allowing us to store, organize, and manipulate groups of data efficiently. 
+Go provides three primary collection types: arrays, slices, and maps, 
+each with distinct characteristics and use cases. 
+Understanding these collection types and their behaviors is essential for writing effective Go programs.
+
+## Arrays: Fixed-Size Sequences
+
+Arrays in Go are fixed-length sequences of elements of a single type. 
+Their size is part of the type declaration and cannot change during execution.
 
 ### Basic Array Operations
-
 ```go
 // array_basics.go
 package main
@@ -55,7 +75,6 @@ func main() {
 ```
 
 ### Array Iteration Techniques
-
 ```go
 // array_iteration.go
 package main
@@ -90,7 +109,6 @@ func main() {
 ```
 
 ### Multi-dimensional Arrays
-
 Go supports multi-dimensional arrays, which are useful for grid-like data structures:
 
 ```go
@@ -134,19 +152,17 @@ func main() {
 ```
 
 ### When to Use Arrays
-
 Arrays in Go are most suitable when:
 - The collection size is known and fixed
 - Memory efficiency is critical
 - You need stack allocation
 - You're working with a specific mathematical or algorithmic requirement
 
-## 2. Slices: Dynamic and Flexible
+## Slices: Dynamic and Flexible
 
 Slices are the most common collection type in Go, providing a flexible, dynamic view into an underlying array.
 
 ### Slice Basics
-
 ```go
 // slice_basics.go
 package main
@@ -187,7 +203,6 @@ func main() {
 ```
 
 ### Slice Operations
-
 The real power of slices comes from operations like `append`, slicing, and access to the underlying array:
 
 ```go
@@ -228,7 +243,6 @@ func main() {
 ```
 
 ### Slice Internals: Length and Capacity
-
 Understanding length and capacity is crucial for effective slice usage:
 
 ```go
@@ -266,7 +280,6 @@ func printSliceInfo(name string, slice []int) {
 ```
 
 ### Common Slice Pitfalls
-
 ```go
 // slice_gotchas.go
 package main
@@ -311,12 +324,11 @@ func main() {
 }
 ```
 
-## 3. Maps: Key-Value Collections
+## Maps: Key-Value Collections
 
 Maps provide an unordered collection of key-value pairs, with highly efficient lookups, insertions, and deletions.
 
 ### Map Basics
-
 ```go
 // map_basics.go
 package main
@@ -371,7 +383,6 @@ func main() {
 ### Map Iteration
 
 Unlike in some languages, map iteration order in Go is not guaranteed:
-
 ```go
 // map_iteration.go
 package main
@@ -422,7 +433,6 @@ func main() {
 ```
 
 ### Maps with Complex Values
-
 Maps in Go can have values of any type, including structs, slices, or even other maps:
 
 ```go
@@ -501,7 +511,7 @@ Maps in Go are implemented as hash tables, providing:
 - Optimized memory usage
 - No guarantee of iteration order
 
-## 4. Collection Type Comparison
+## Collection Type Comparison
 
 When deciding which collection type to use, consider these differences:
 
@@ -517,10 +527,9 @@ When deciding which collection type to use, consider these differences:
 | Memory overhead | None | Small | Moderate |
 | Iteration order | Guaranteed | Guaranteed | Not guaranteed |
 
-## 5. Common Patterns and Idioms
+## Common Patterns and Idioms
 
 ### Filtering Slices
-
 ```go
 // filter_slice.go
 package main
@@ -555,7 +564,6 @@ func main() {
 ```
 
 ### Transforming Maps
-
 ```go
 // transform_map.go
 package main
@@ -601,7 +609,6 @@ func main() {
 ```
 
 ### Counting with Maps
-
 ```go
 // counting.go
 package main
@@ -637,54 +644,72 @@ func main() {
 }
 ```
 
-## 6. Best Practices for Go Collections
+## Best Practices
 
 1. **Choose the Right Collection Type**
    - Arrays: When size is fixed and known at compile time
    - Slices: For the vast majority of sequence needs
    - Maps: When you need key-value associations
-
 2. **Memory Efficiency**
    - Pre-allocate slices when you know the approximate size: `make([]int, 0, capacity)`
    - Be cautious with very large arrays (they're copied when passed to functions)
    - Remember that `append()` might reallocate memory
-
 3. **Safety First**
    - Always check for existence when accessing map elements with the two-value form
    - Check slice bounds before indexing
    - Watch for nil slices vs. empty slices (`nil` vs. `[]int{}`)
-
 4. **Performance Considerations**
    - Avoid unnecessary allocations and copying
    - Reuse slices when possible
    - Use `copy()` for explicit slice duplication
    - Remember that map operations have small overhead compared to direct array access
-
 5. **Idiomatic Go**
    - Use `range` for iteration
    - Leverage slice expressions for clean subsetting
    - Use maps for lookup tables and counting
 
-## Summary
+## Practice Exercises
 
-In this module, you've learned:
-- The characteristics and uses of Go's three primary collection types: arrays, slices, and maps
-- How to create, manipulate, and iterate over each collection type
-- The memory model and internals of slices and their relationship to arrays
-- Efficient techniques for working with maps as key-value stores
-- Common patterns for filtering, transforming, and counting with collections
-- Best practices for memory efficiency and performance
-- How to apply these concepts in real-world programming scenarios
+### Exercise 1: Student Grade Tracker
+Create a program that tracks and analyzes student grades using maps and slices.
+This exercise will help you understand how to work with collection types to store and process related data.
 
-Understanding collection types is foundational to writing effective Go programs. Arrays provide fixed-size collections, slices offer flexibility and dynamic growth, and maps enable efficient key-value lookups. By selecting the appropriate collection type for each situation, you can write more efficient, clear, and idiomatic Go code.
+Your implementation should:
+1. Create a map that associates student names (strings) with their grades (slices of integers)
+2. Calculate each student's average grade and store it in a new map
+3. Identify the student with the highest average grade
+4. Create a ranked list of students based on their average grades
+5. Display formatted output showing:
+   - Individual student averages
+   - The top performing student
+   - A ranked list of all students
 
-## Additional Resources
+### Exercise 2: Word Frequency Counter
+Develop a text analysis tool that counts word frequencies in a text document.
+This exercise demonstrates how to process strings, use regular expressions, and manipulate maps for data analysis.
 
-- [Go Tour: Arrays](https://tour.golang.org/moretypes/6)
-- [Go Tour: Slices](https://tour.golang.org/moretypes/7)
-- [Go Tour: Maps](https://tour.golang.org/moretypes/19)
-- [Effective Go: Arrays, Slices and Maps](https://golang.org/doc/effective_go.html#arrays)
-- [Go Blog: Go Slices: usage and internals](https://blog.golang.org/slices-intro)
-- [Go by Example: Arrays](https://gobyexample.com/arrays)
-- [Go by Example: Slices](https://gobyexample.com/slices)
-- [Go by Example: Maps](https://gobyexample.com/maps)
+Your implementation should:
+1. Process a sample text (or optionally read from a file)
+2. Convert the text to lowercase and extract individual words
+3. Count the frequency of each word in the text using a map
+4. Filter out common stop words that don't add meaning
+5. Sort the words by frequency in descending order
+6. Display the top N most frequent words in a formatted table
+7. Optionally write the complete results to a file
+
+### Exercise 3: Contact Book Application
+Build a contact management application that allows users to store and retrieve contact information.
+This exercise combines structs with collection types to create a more complex data management system.
+
+Your implementation should include:
+1. A `Contact` struct that stores personal information (first name, last name, email, phone)
+2. A `ContactBook` struct that manages a collection of contacts using a map
+3. Methods for:
+   - Adding a new contact to the book
+   - Finding contacts by searching for a name or partial name
+   - Deleting contacts
+   - Listing all contacts in alphabetical order
+   - Grouping contacts by their first letter
+4. A demonstration that shows all the functionality of the contact book
+5. Proper handling of case sensitivity in searches
+6. Sorting capabilities for displaying contacts in a structured way

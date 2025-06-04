@@ -14,7 +14,7 @@
     <li><a href="#memory-management-with-pointers">Memory Management with Pointers</a></li>
     <li><a href="#unsafe-pointers">Unsafe Pointers</a></li>
     <li><a href="#common-mistakes-and-pitfalls">Common Mistakes and Pitfalls</a></li>
-    <li><a href="#practice-xercises">Practice Exercises</a></li>
+    <li><a href="#practice-exercises">Practice Exercises</a></li>
 </ol>
 
 ## Objectives
