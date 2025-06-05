@@ -1,8 +1,10 @@
-# Module 08: Concurrency in Go - Parallel Programming Paradigms
+# Module 10: Concurrency in Go
 
 ## Introduction to Concurrency
 
-Concurrency is a fundamental characteristic of modern computing, and Go was designed from the ground up to make concurrent programming both powerful and accessible. Unlike traditional threading models, Go introduces a unique approach to managing concurrent operations through goroutines and channels.
+Concurrency is a fundamental characteristic of modern computing, 
+and Go was designed from the ground up to make concurrent programming both powerful and accessible. 
+Unlike traditional threading models, Go introduces a unique approach to managing concurrent operations through goroutines and channels.
 
 ### The Concurrency Landscape
 
@@ -220,4 +222,14 @@ func (c *SafeCounter) Inc(key string) {
 2. What are the trade-offs between mutex and channel-based synchronization?
 3. How would you design a system that efficiently manages many concurrent operations?
 
-**Concurrency Mastery: Unleash the Power of Parallel Programming in Go!** 🚀
+## Practice Exercises
+
+### Exercise 1: Simple Goroutine Counter
+Create a program that demonstrates basic goroutine usage with a counter:
+
+### Exercise 2: Channel-Based Number Processor
+Build a pipeline using goroutines and channels to process numbers:
+
+### Exercise 3: Worker Pool
+Implement a worker pool to distribute tasks among multiple goroutines:
+
