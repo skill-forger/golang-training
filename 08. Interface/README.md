@@ -53,51 +53,52 @@ import "fmt"
 
 // Sounder defines a behavior - making a sound
 type Sounder interface {
-    MakeSound() string
+	MakeSound() string
 }
 
 // Types that implement Sounder:
 
 // Dog implicitly implements Sounder
 type Dog struct {
-    Name  string
-    Breed string
+	Name  string
+	Breed string
 }
 
 func (d Dog) MakeSound() string {
-    return "Woof!"
+	return "Woof!"
 }
 
 // Cat implicitly implements Sounder
 type Cat struct {
-    Name  string
-    Color string
+	Name  string
+	Color string
 }
 
 func (c Cat) MakeSound() string {
-    return "Meow!"
+	return "Meow!"
 }
 
 // A function that can work with ANY type that fulfills the Sounder contract
 func AnimalConcert(animals []Sounder) {
-    fmt.Println("Animal concert begins:")
-    for _, animal := range animals {
-        fmt.Println(animal.MakeSound())
-    }
-    fmt.Println("Concert ends")
+	fmt.Println("Animal concert begins:")
+	for _, animal := range animals {
+		fmt.Println(animal.MakeSound())
+	}
+	fmt.Println("Concert ends")
 }
 
 func main() {
-    // Create different concrete types
-    dog := Dog{Name: "Buddy", Breed: "Golden Retriever"}
-    cat := Cat{Name: "Whiskers", Color: "Orange"}
-    
-    // Both can be treated as Sounders
-    animals := []Sounder{dog, cat}
-    
-    // Pass them to a function expecting the interface
-    AnimalConcert(animals)
+	// Create different concrete types
+	dog := Dog{Name: "Buddy", Breed: "Golden Retriever"}
+	cat := Cat{Name: "Whiskers", Color: "Orange"}
+
+	// Both can be treated as Sounders
+	animals := []Sounder{dog, cat}
+
+	// Pass them to a function expecting the interface
+	AnimalConcert(animals)
 }
+
 ```
 
 ### Key Characteristics of Go Interfaces

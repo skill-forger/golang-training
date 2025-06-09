@@ -175,6 +175,7 @@ func main() {
 		fmt.Println("Received:", value)
 	}
 }
+
 ```
 
 ## Mutual Exclusion

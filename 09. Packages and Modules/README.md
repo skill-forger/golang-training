@@ -218,10 +218,11 @@ myproject/
       github.com/somepackage/library v1.2.3
     )
     ```
-- `go.sum` file: 
-  This file is generated alongside go.mod and contains the cryptographic checksums of the direct and indirect dependencies. 
-  This ensures the integrity and authenticity of your project's dependencies, 
-  making sure you're using the exact same code every time you build your project. 
+- `go.sum` file:
+  This file is generated alongside go.mod and contains the cryptographic checksums of the direct and indirect
+  dependencies.
+  This ensures the integrity and authenticity of your project's dependencies,
+  making sure you're using the exact same code every time you build your project.
   You should commit both go.mod and go.sum to your version control system
 
 ### Common Commands
