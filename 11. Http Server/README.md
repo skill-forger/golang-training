@@ -8,7 +8,8 @@
     <li><a href="#what-is-a-server">What is a Server?</a></li>
     <li><a href="#http-servers">HTTP Servers</a></li>
     <li><a href="#http-server-in-go">HTTP Server in Go</a></li>
-    <li><a href="#practice-exercises">Common Mistakes</a></li>
+    <li><a href="#common-mistakes">Common Mistakes</a></li>
+    <li><a href="#best-practices">Best Practices</a></li>
     <li><a href="#practice-exercises">Practice Exercises</a></li>
 </ol>
 
