@@ -164,6 +164,39 @@ specifies the mechanism for accessing it. Its primary goal is to identify a reso
 | **Examples**     | `urn:isbn:1234567890`, `mailto:user@example.com`, `https://example.com/page` | `https://example.com/page`, `ftp://server/file.txt`           |
 | **Relationship** | Superset (contains URLs)                                                     | Subset of URI                                                 |
 
+### The parameters
+
+#### Path Parameters
+
+Path parameters are used to identify a specific resource or a specific part of a resource's hierarchy.
+They are an essential part of the URL itself
+
+- **Syntax**: They're embedded directly in the URL path, often marked with curly braces in API documentation
+  (e.g., `/users/{id}`). In the actual request, the value replaces the placeholder
+- **Purpose**: They are typically required and are used for resource identification.
+- **Example**: If you want to get the details of a specific user with the ID 123,
+  your request would look like this: `GET /users/123`
+
+#### Query Parameters
+
+Query parameters are used to **filter**, **sort**, and **paginate** resources.
+They provide optional instructions for modifying a request without changing the resource's core identity
+
+- **Syntax**: They are appended to the URL after a question mark (`?`).
+  Each parameter is a key-value pair, separated by an ampersand (`&`) if there's more than one.
+- **Purpose**: They are typically optional and are used for filtering, sorting, searching, or pagination.
+- **Example**: If you want to get a list of products that are in the "electronics" category and sort them by price,
+  your request would look like this: `GET /products?category=electronics&sort=price`
+
+#### Comparison
+
+| Feature         | Path Parameters                                | Query Parameters                                                             |
+|-----------------|------------------------------------------------|------------------------------------------------------------------------------|
+| **Location**    | Part of the URL path                           | Appended after the `?` in the URL                                            |
+| **Purpose**     | Identify a specific resource or its hierarchy  | Filter, sort, paginate, or provide optional data                             |
+| **Requirement** | Typically required for the request to be valid | Typically optional                                                           |
+| **Analogy**     | A street address: "Go to this exact place."    | Search filters: "Show me this place, but only the ones with these features." |
+
 ### The Methods
 
 The HyperText Transfer Protocol (HTTP) defines a set of standard request methods, often referred to as HTTP verbs. These

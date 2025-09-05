@@ -1,4 +1,37 @@
-# Module 10: Gin Framework in Go - Building Modern Web Applications
+# Module 12: Gin Gonic
+
+## Table of Contents
+
+<ol>
+    <li><a href="#objectives">Objectives</a></li>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#what-is-a-server">What is a Server?</a></li>
+    <li><a href="#http-servers">HTTP Servers</a></li>
+    <li><a href="#http-server-in-go">HTTP Server in Go</a></li>
+    <li><a href="#common-mistakes">Common Mistakes</a></li>
+    <li><a href="#best-practices">Best Practices</a></li>
+    <li><a href="#practice-exercises">Practice Exercises</a></li>
+</ol>
+
+## Objectives
+
+By the end of this module, you will:
+
+- Understand the Core Concepts of a Gin Gonic
+- 
+- Grasp the HTTP Request-Response Cycle
+- Utilize the `net/http` in Go to host a simple HTTP server
+- Implement basic use cases and handlers using `net/http` package
+- Gain Practical Awareness for Backend Development
+
+## Overview
+
+In this module, the focus will be on the foundational principles of HTTP Servers, which are integral to nearly all
+internet interactions. This module aims to equip freshers and interns with a clear conceptual understanding of how
+these servers operate, gain insight into the core mechanisms of web communication, including the HTTP
+protocol, the structure of requests and responses, and the server's role in processing these exchanges, thereby building
+a solid foundation for backend development journey.
+
 
 ## Introduction to Gin Framework
 
@@ -56,7 +89,7 @@ func main() {
 - **Engine**: The central component that manages routes and middleware
 - **Context**: Carries request details and provides response methods
 - **RouterGroup**: Enables route grouping for better organization
-- **Middleware**: Functions that process requests before/after handlers
+- **Middleware**: Functions that process requests before/after the main handlers
 
 ### Routing in Gin
 
