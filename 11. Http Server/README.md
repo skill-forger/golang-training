@@ -325,6 +325,125 @@ It is important to note that an HTTP message does not always include a body.
     - Certain informational responses (1xx) and specific success codes like 204 No Content explicitly state that no
       content is returned in the body.
 
+### The Middleware
+
+#### Definition
+
+Middleware is a function that sits between a request and the final handler. It can execute code before or after the
+handler. This concept allows you to add cross-cutting concerns to your application in a modular and reusable way.
+
+#### Common use cases
+
+- **Logging**: To log details of incoming requests. Gin comes with a built-in gin.Logger() middleware.
+- **Authentication/Authorization**: To protect routes and ensure users are logged in or have the correct permissions.
+- **Recovery**: The gin.Recovery() middleware helps prevent the server from crashing on a panic.
+
+Example of a logging middleware
+This is a classic example of middleware.
+It logs information about each incoming request before it's passed to the next handler.
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+	"time"
+)
+
+// The middleware function
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		// Call the next handler in the chain
+		next.ServeHTTP(w, r)
+		// Log the request after the handler has completed
+		log.Printf("Request processed in %s | Method: %s | URL: %s", time.Since(start), r.Method, r.URL.Path)
+	})
+}
+
+// Our main application handler
+func helloHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, World!")
+}
+
+func main() {
+	// Create an http.Handler from our function
+	helloHandlerFunc := http.HandlerFunc(helloHandler)
+
+	// Wrap our handler with the logging middleware
+	loggedHandler := loggingMiddleware(helloHandlerFunc)
+
+	// Register the wrapped handler
+	http.Handle("/", loggedHandler)
+
+	fmt.Println("Server listening on port 8080...")
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+```
+
+#### Multiple Middlewares Chaining
+
+Multiple middleware functions can be chained together to create a pipeline. Each middleware function wraps the one that
+comes after it, creating a nested structure.
+
+For example, to add both a logging and an authentication middleware:
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+	"time"
+)
+
+// Authentication middleware
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Example: Check for a valid header
+		token := r.Header.Get("X-Auth-Token")
+		if token != "valid-token" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return // Stop the chain
+		}
+		next.ServeHTTP(w, r) // Pass to the next handler
+	})
+}
+
+// The middleware function
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		// Call the next handler in the chain
+		next.ServeHTTP(w, r)
+		// Log the request after the handler has completed
+		log.Printf("Request processed in %s | Method: %s | URL: %s", time.Since(start), r.Method, r.URL.Path)
+	})
+}
+
+// Our main application handler
+func helloHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, World!")
+}
+
+func main() {
+	// Final handler
+	helloHandlerFunc := http.HandlerFunc(helloHandler)
+
+	// Chain the middleware
+	chain := loggingMiddleware(authMiddleware(helloHandlerFunc))
+
+	http.Handle("/", chain)
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+```
+
 ## HTTP Server in Go
 
 Go provides powerful, yet straightforward tools for building web applications through its standard library.
