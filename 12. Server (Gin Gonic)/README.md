@@ -5,326 +5,512 @@
 <ol>
     <li><a href="#objectives">Objectives</a></li>
     <li><a href="#overview">Overview</a></li>
-    <li><a href="#what-is-a-server">What is a Server?</a></li>
-    <li><a href="#http-servers">HTTP Servers</a></li>
-    <li><a href="#http-server-in-go">HTTP Server in Go</a></li>
-    <li><a href="#common-mistakes">Common Mistakes</a></li>
-    <li><a href="#best-practices">Best Practices</a></li>
-    <li><a href="#practice-exercises">Practice Exercises</a></li>
+    <li><a href="#introduction-to-gin-gonic">Introduction to Gin Gonic</a></li>
+    <li><a href="#core-concepts">Core Concepts</a></li>
+    <li><a href="#quick-start">Quick Start</a></li>
+    <li><a href="#features">Features</a></li>
+
 </ol>
 
 ## Objectives
 
-By the end of this module, you will:
+By the end of this module, you will be able to:
 
-- Understand the Core Concepts of a Gin Gonic
-- 
-- Grasp the HTTP Request-Response Cycle
-- Utilize the `net/http` in Go to host a simple HTTP server
-- Implement basic use cases and handlers using `net/http` package
-- Gain Practical Awareness for Backend Development
+- Understand the core architecture and components of the Gin framework.
+- Build robust REST APIs with routing, request handling, and validation.
+- Implement middleware for cross-cutting concerns like logging and authentication.
+- Structure a Gin application using best practices for scalability and maintainability.
+- Write effective tests for your Gin handlers.
 
 ## Overview
 
-In this module, the focus will be on the foundational principles of HTTP Servers, which are integral to nearly all
-internet interactions. This module aims to equip freshers and interns with a clear conceptual understanding of how
-these servers operate, gain insight into the core mechanisms of web communication, including the HTTP
-protocol, the structure of requests and responses, and the server's role in processing these exchanges, thereby building
-a solid foundation for backend development journey.
+Go's standard net/http library is powerful but can be verbose for building complex APIs.
+Gin Gonic is a minimalistic, high-performance web framework that simplifies this process significantly.
+It provides a robust set of features like routing, middleware, and rendering, allowing you to build production-ready
+services quickly without sacrificing the performance that Go is known for.
 
+## Introduction to Gin Gonic
 
-## Introduction to Gin Framework
+While Go's standard library provides robust HTTP server capabilities, the Gin Gonic has emerged as one of the most
+popular web frameworks in the Go ecosystem. Gin offers a more feature-rich, expressive, and performance-focused approach
+to building web applications while maintaining Go's simplicity and efficiency.
+For more information, refer to [Gin Gonic official documentation](https://gin-gonic.com/en/docs/).
 
-While Go's standard library provides robust HTTP server capabilities, the Gin framework has emerged as one of the most popular web frameworks in the Go ecosystem. Gin offers a more feature-rich, expressive, and performance-focused approach to building web applications while maintaining Go's simplicity and efficiency.
-
-### The Gin Framework Landscape
+### The Gin Landscape
 
 Before diving into Gin's specifics, let's understand why it has become a leading choice:
 
-1. **Gin vs Standard Library**
-    - **Performance**: Gin is built for speed with radix tree-based routing
-    - **Developer Experience**: More intuitive API design and middleware system
-    - **Feature Set**: Built-in support for JSON validation, error management, and more
+#### Gin vs Standard Library
 
-2. **Why Gin Matters for Modern Applications**
-    - Simplified API development process
-    - Robust middleware ecosystem
-    - Excellent performance characteristics
-    - Clean code organization through groups and routes
+- **Performance**: Gin is built for speed with radix tree-based routing
+- **Developer Experience**: More intuitive API design and middleware system
+- **Feature Set**: Built-in support for JSON validation, error management, and more
 
-### Getting Started with Gin
+#### Why Gin Matters for Modern Applications
 
-To begin working with Gin, you'll need to install it first:
+- Simplified API development process
+- Robust middleware ecosystem
+- Excellent performance characteristics
+- Clean code organization through groups and routes
+
+### Syntax Comparison
+
+#### Standard `net/http`
 
 ```go
-// First, install Gin using Go modules
-// In your terminal:
-// go get -u github.com/gin-gonic/gin
-
-// Basic Gin server example
 package main
 
 import (
-    "github.com/gin-gonic/gin"
-    "net/http"
+	"fmt"
+	"log"
+	"net/http"
+)
+
+func helloHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/hello" {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	fmt.Fprintf(w, "Hello, World!")
+}
+
+func main() {
+	http.HandleFunc("/hello", helloHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+```
+
+#### Gin Gonic
+
+```go
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 func main() {
-    // Create a default Gin router
-    r := gin.Default()
+	// gin.Default() comes with Logger and Recovery middleware.
+	router := gin.Default()
 
-    // Define a route
-    r.GET("/", func(c *gin.Context) {
-        c.JSON(http.StatusOK, gin.H{
-            "message": "Welcome to Gin Framework!",
-        })
-    })
+	router.GET("/hello", func(c *gin.Context) {
+		c.String(http.StatusOK, "Hello, World!")
+	})
 
-    // Run the server on port 8080
-    r.Run() // defaults to ":8080"
+	router.Run(":8080") // listen and serve on 0.0.0.0:8080
 }
 ```
 
-#### Gin Core Components
-- **Engine**: The central component that manages routes and middleware
-- **Context**: Carries request details and provides response methods
-- **RouterGroup**: Enables route grouping for better organization
-- **Middleware**: Functions that process requests before/after the main handlers
+## Core Concepts
 
-### Routing in Gin
+### Engine
 
-Gin provides an intuitive API for defining routes with different HTTP methods:
+The Gin Engine is the core of the framework. It's the main instance that you create, and it's responsible for
+registering routes, attaching middleware, and starting the server. You'll typically start with `gin.Default()` which
+includes logging and panic recovery middleware.
+
+### Context (gin.Context)
+
+This is arguably the most important component. The `Context` is a struct that carries request-scoped data through the
+middleware chain to your handler. It's how you access request details (headers, parameters, body) and how you write the
+response. It's a wrapper around `http.ResponseWriter` and `*http.Request`.
+
+### RouterGroup
+
+This allows you to group related routes under a common path prefix and apply a shared set of middleware to all routes
+within that group. It's essential for organizing your API (e.g., `/api/v1/users`, `/api/v1/products`).
+
+### Middleware
+
+Middleware are functions that are executed before or after the main request handler. They are arranged in a chain.
+Common use cases include logging, authentication, authorization, error handling, and data transformation. A middleware
+can either pass the request to the next handler in the chain using `c.Next()` or abort the request using `c.Abort()`.
+
+## Quick Start
+
+### Prerequisite
+
+- Go 1.16 or above
+
+### Installation
+
+To install Gin package, you need to install Go and set your Go workspace first.
+If you don’t have a go.mod file, create it with `go mod init gin`.
+
+1. Download and install Gin:
+    ```shell
+    go get -u github.com/gin-gonic/gin
+    ```
+2. Import dependencies:
+    ```go
+    import "github.com/gin-gonic/gin"
+    import "net/http"
+    ```
+3. Create a simple server with Gin
+    ```go
+   // file main.go
+    package main
+    
+    import (
+        "github.com/gin-gonic/gin"
+        "net/http"
+    )
+    
+    func main() {
+        router := gin.Default()
+    
+        router.GET("/ping", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+                "message": "pong",
+        })
+    })
+    
+         router.Run() // listen and serve on 0.0.0.0:8080
+    }
+    ```
+4. Start the server
+    ```shell
+    go run example.go
+    ```
+
+## Features
+
+### Routing and Handling Request
+
+Routing is the process of mapping an incoming request's URL and HTTP method to a specific handler function.
 
 ```go
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
 func main() {
-    r := gin.Default()
+	router := gin.Default()
 
-    // Basic routes with different HTTP methods
-    r.GET("/users", getUsers)
-    r.POST("/users", createUser)
-    r.PUT("/users/:id", updateUser)
-    r.DELETE("/users/:id", deleteUser)
-    
-    // Route with path parameters
-    r.GET("/users/:id", func(c *gin.Context) {
-        id := c.Param("id")
-        c.JSON(http.StatusOK, gin.H{
-            "id": id,
-            "message": "User details retrieved",
-        })
-    })
-    
-    // Route with query parameters
-    r.GET("/search", func(c *gin.Context) {
-        query := c.DefaultQuery("q", "default search")
-        page := c.DefaultQuery("page", "1")
-        c.JSON(http.StatusOK, gin.H{
-            "query": query,
-            "page": page,
-        })
-    })
+	// Map a GET request to the "/ping" path
+	router.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "pong",
+		})
+	})
 
-    r.Run()
+	// Map a POST request
+	router.POST("/users", func(c *gin.Context) {
+		// ... logic to create a user
+		c.JSON(http.StatusCreated, gin.H{"status": "user created"})
+	})
+
+	router.Run(":8080")
+}
+
+```
+
+Gin provides an intuitive API for defining routes with different HTTP methods,
+supports all standard HTTP methods: `GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, and `OPTIONS`.
+
+```go
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
+func main() {
+	r := gin.Default()
+
+	// Basic routes with different HTTP methods
+	r.GET("/users", getUsers)
+	r.POST("/users", createUser)
+	r.PUT("/users/:id", updateUser)
+	r.DELETE("/users/:id", deleteUser)
+
+	// Route with path parameters
+	r.GET("/users/:id", func(c *gin.Context) {
+		id := c.Param("id")
+		c.JSON(http.StatusOK, gin.H{
+			"id":      id,
+			"message": "User details retrieved",
+		})
+	})
+
+	// Route with query parameters
+	r.GET("/search", func(c *gin.Context) {
+		query := c.DefaultQuery("q", "default search")
+		page := c.DefaultQuery("page", "1")
+		c.JSON(http.StatusOK, gin.H{
+			"query": query,
+			"page":  page,
+		})
+	})
+
+	r.Run()
 }
 
 func getUsers(c *gin.Context) {
-    c.JSON(http.StatusOK, gin.H{
-        "users": []string{"user1", "user2"},
-    })
+	c.JSON(http.StatusOK, gin.H{
+		"users": []string{"user1", "user2"},
+	})
 }
 
 // Other handler functions
+
 ```
 
-#### Route Groups
+### Working with Route Groups
 
-Organizing related routes into groups improves code structure:
+Organizing related routes into groups improves code structure.
 
 ```go
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+)
+
 func main() {
-    r := gin.Default()
+	r := gin.Default()
 
-    // API route group
-    api := r.Group("/api")
-    {
-        // /api/users
-        api.GET("/users", getUsers)
-        
-        // User-specific group
-        users := api.Group("/users")
-        {
-            users.GET("/:id", getUserByID)
-            users.PUT("/:id", updateUser)
-            users.DELETE("/:id", deleteUser)
-        }
-        
-        // Products group
-        products := api.Group("/products")
-        {
-            products.GET("/", getProducts)
-            products.POST("/", createProduct)
-        }
-    }
+	// API route group
+	api := r.Group("/api")
+	{
+		// /api/users
+		api.GET("/users", getUsers)
 
-    // Admin route group with different middleware
-    admin := r.Group("/admin", AuthMiddleware())
-    {
-        admin.GET("/analytics", getAnalytics)
-        admin.GET("/users", adminGetUsers)
-    }
+		// User-specific group
+		users := api.Group("/users")
+		{
+			users.GET("/:id", getUserByID)
+			users.PUT("/:id", updateUser)
+			users.DELETE("/:id", deleteUser)
+		}
 
-    r.Run()
+		// Products group
+		products := api.Group("/products")
+		{
+			products.GET("/", getProducts)
+			products.POST("/", createProduct)
+		}
+	}
+
+	// Admin route group with different middleware
+	admin := r.Group("/admin", AuthMiddleware())
+	{
+		admin.GET("/analytics", getAnalytics)
+		admin.GET("/users", adminGetUsers)
+	}
+
+	r.Run()
 }
+
 ```
 
-### Working with Request Data
-
-Gin makes it easy to handle various types of request data:
+Router Groups are perfect for versioning your API and applying shared logic.
 
 ```go
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
+func main() {
+	router := gin.Default()
+
+	// Group for API version 1
+	v1 := router.Group("/api/v1")
+	{ // Use braces for visual separation
+		v1.GET("/users", GetUsers)       // Handler for /api/v1/users
+		v1.POST("/users", CreateUser)    // Handler for /api/v1/users
+		v1.GET("/products", GetProducts) // Handler for /api/v1/products
+	}
+
+	// Group for API version 2
+	v2 := router.Group("/api/v2")
+	{
+		v2.GET("/users", GetUsersV2)
+	}
+
+	router.Run(":8080")
+}
+
+// Dummy handler functions
+func GetUsers(c *gin.Context)    { c.JSON(http.StatusOK, "v1 users") }
+func CreateUser(c *gin.Context)  { c.JSON(http.StatusCreated, "v1 user created") }
+func GetProducts(c *gin.Context) { c.JSON(http.StatusOK, "v1 products") }
+func GetUsersV2(c *gin.Context)  { c.JSON(http.StatusOK, "v2 users") }
+
+```
+
+### Binding Payload and parsing data
+
+Gin makes it trivial to extract data from a request.
+
+#### Path, Form data and Query Parameters
+
+```go
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
+func main() {
+	router := gin.Default()
+
+	// Path Parameter (e.g., /users/123)
+	router.GET("/users/:id", func(c *gin.Context) {
+		id := c.Param("id")
+		c.String(http.StatusOK, "User ID is %s", id)
+	})
+
+	// Query Parameter (e.g., /search?query=golang)
+	router.GET("/search", func(c *gin.Context) {
+		// Use Query for a single value, or DefaultQuery for a fallback
+		query := c.DefaultQuery("query", "guest")
+		c.String(http.StatusOK, "Search query is '%s'", query)
+	})
+
+	// Form data (e.g., /form-submit)
+	router.POST("/form-submit", func(c *gin.Context) {
+		// Parse form data
+		name := c.PostForm("name")
+		email := c.DefaultPostForm("email", "default@example.com")
+
+		c.JSON(http.StatusOK, gin.H{
+			"name":  name,
+			"email": email,
+		})
+	})
+
+	router.Run(":8080")
+}
+
+```
+
+#### Request Body
+
+Binding automatically parses the request body (e.g., JSON) into a Go struct. This is extremely powerful for validation.
+
+```go
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
 // User struct for binding request data
 type User struct {
-    ID       string `json:"id" binding:"required"`
-    Username string `json:"username" binding:"required,min=4,max=20"`
-    Email    string `json:"email" binding:"required,email"`
-    Age      int    `json:"age" binding:"required,gte=18"`
+	ID       string `json:"id" binding:"required"`
+	Username string `json:"username" binding:"required,min=4,max=20"`
+	Email    string `json:"email" binding:"required,email"`
+	Age      int    `json:"age" binding:"required,gte=18"`
 }
 
 func createUser(c *gin.Context) {
-    var user User
-    
-    // Bind JSON request body to user struct
-    if err := c.ShouldBindJSON(&user); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{
-            "error": err.Error(),
-        })
-        return
-    }
-    
-    // Process the validated user data
-    // ...
-    
-    c.JSON(http.StatusCreated, gin.H{
-        "message": "User created successfully",
-        "user": user,
-    })
+	var user User
+
+	// Bind JSON request body to user struct
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// Process the validated user data
+	// ...
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "User created successfully",
+		"user":    user,
+	})
 }
 
-func formHandler(c *gin.Context) {
-    // Parse form data
-    name := c.PostForm("name")
-    email := c.DefaultPostForm("email", "default@example.com")
-    
-    c.JSON(http.StatusOK, gin.H{
-        "name": name,
-        "email": email,
-    })
-}
+```
+
+#### Files and Assets
+
+Gin allows API to handle files and assets uploading.
+
+```go
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
 
 func uploadHandler(c *gin.Context) {
-    // Handle file upload
-    file, err := c.FormFile("file")
-    if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{
-            "error": err.Error(),
-        })
-        return
-    }
-    
-    // Save the file
-    dst := "uploads/" + file.Filename
-    if err := c.SaveUploadedFile(file, dst); err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{
-            "error": err.Error(),
-        })
-        return
-    }
-    
-    c.JSON(http.StatusOK, gin.H{
-        "message": "File uploaded successfully",
-        "filename": file.Filename,
-    })
+	// Handle file upload
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// Save the file
+	dst := "uploads/" + file.Filename
+	if err := c.SaveUploadedFile(file, dst); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "File uploaded successfully",
+		"filename": file.Filename,
+	})
 }
+
 ```
 
-### Response Handling
-
-Gin offers various methods for sending different types of responses:
+Gin can render HTML templates and serve static files like CSS, JS, and images.
 
 ```go
-func responseExamples(c *gin.Context) {
-    // JSON response
-    c.JSON(http.StatusOK, gin.H{
-        "message": "This is a JSON response",
-        "status": "success",
-    })
-    
-    // XML response
-    c.XML(http.StatusOK, gin.H{
-        "message": "This is an XML response",
-        "status": "success",
-    })
-    
-    // String response
-    c.String(http.StatusOK, "This is a plain text response")
-    
-    // HTML response (using templates)
-    c.HTML(http.StatusOK, "index.html", gin.H{
-        "title": "Gin HTML Template",
-        "message": "Welcome to Gin!",
-    })
-    
-    // Redirect
-    c.Redirect(http.StatusMovedPermanently, "https://example.com")
-    
-    // File download
-    c.File("path/to/file.pdf")
-    
-    // Custom response with headers
-    c.Header("Content-Type", "application/json")
-    c.Header("X-Custom-Header", "Custom Value")
-    c.JSON(http.StatusOK, gin.H{"message": "Custom headers set"})
-}
-```
+package main
 
-### HTML Templates in Gin
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
 
-Gin integrates with Go's template system for rendering HTML:
-
-```go
 func main() {
-    r := gin.Default()
-    
-    // Load HTML templates
-    r.LoadHTMLGlob("templates/*")
-    
-    // Route to render template
-    r.GET("/", func(c *gin.Context) {
-        c.HTML(http.StatusOK, "index.html", gin.H{
-            "title": "Gin Framework",
-            "content": "Welcome to Gin Web Framework!",
-        })
-    })
-    
-    // Route for a data-driven page
-    r.GET("/users", func(c *gin.Context) {
-        users := []gin.H{
-            {"name": "Alice", "email": "alice@example.com"},
-            {"name": "Bob", "email": "bob@example.com"},
-            {"name": "Charlie", "email": "charlie@example.com"},
-        }
-        
-        c.HTML(http.StatusOK, "users.html", gin.H{
-            "title": "User List",
-            "users": users,
-        })
-    })
-    
-    r.Run()
+	router := gin.Default()
+
+	// Serve static files from the "./static" directory
+	router.Static("/static", "./static")
+
+	// Load HTML templates from the "./templates" directory
+	router.LoadHTMLGlob("templates/*")
+
+	router.GET("/index", func(c *gin.Context) {
+		// Render the "index.tmpl" template
+		c.HTML(http.StatusOK, "index.tmpl", gin.H{
+			"title": "Main website",
+		})
+	})
+
+	router.Run(":8080")
 }
+
 ```
 
-With corresponding template files:
+With corresponding template files.
 
 ```html
 <!-- templates/index.html -->
@@ -334,8 +520,8 @@ With corresponding template files:
     <title>{{ .title }}</title>
 </head>
 <body>
-    <h1>{{ .title }}</h1>
-    <p>{{ .content }}</p>
+<h1>{{ .title }}</h1>
+<p>{{ .content }}</p>
 </body>
 </html>
 
@@ -346,88 +532,169 @@ With corresponding template files:
     <title>{{ .title }}</title>
 </head>
 <body>
-    <h1>{{ .title }}</h1>
-    <ul>
-        {{ range .users }}
-        <li>{{ .name }} - {{ .email }}</li>
-        {{ end }}
-    </ul>
+<h1>{{ .title }}</h1>
+<ul>
+    {{ range .users }}
+    <li>{{ .name }} - {{ .email }}</li>
+    {{ end }}
+</ul>
 </body>
 </html>
 ```
 
-### Middleware in Gin
+### Handling Response
 
-Middleware functions process requests before and after handlers, enabling cross-cutting concerns:
+Gin offers various methods for sending different types of responses:
 
 ```go
-func main() {
-    // Initialize with default logger and recovery middleware
-    r := gin.Default()
-    
-    // Global middleware - applied to all routes
-    r.Use(CustomMiddleware())
-    
-    // Group-specific middleware
-    authorized := r.Group("/", AuthMiddleware())
-    {
-        authorized.GET("/profile", getProfile)
-    }
-    
-    // Route-specific middleware
-    r.GET("/admin", AdminMiddleware(), adminHandler)
-    
-    r.Run()
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
+func responseExamples(c *gin.Context) {
+	// JSON response
+	c.JSON(http.StatusOK, gin.H{
+		"message": "This is a JSON response",
+		"status":  "success",
+	})
+
+	// XML response
+	c.XML(http.StatusOK, gin.H{
+		"message": "This is an XML response",
+		"status":  "success",
+	})
+
+	// String response
+	c.String(http.StatusOK, "This is a plain text response")
+
+	// HTML response (using templates)
+	c.HTML(http.StatusOK, "index.html", gin.H{
+		"title":   "Gin HTML Template",
+		"message": "Welcome to Gin!",
+	})
+
+	// Redirect
+	c.Redirect(http.StatusMovedPermanently, "https://example.com")
+
+	// File download
+	c.File("path/to/file.pdf")
+
+	// Custom response with headers
+	c.Header("Content-Type", "application/json")
+	c.Header("X-Custom-Header", "Custom Value")
+	c.JSON(http.StatusOK, gin.H{"message": "Custom headers set"})
 }
 
-// Custom middleware example
-func CustomMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        // Before request - preprocessing
-        startTime := time.Now()
-        
-        // Add data to the context for handlers to use
-        c.Set("example", "value")
-        
-        // Continue to the next middleware/handler
-        c.Next()
-        
-        // After request - postprocessing
-        latency := time.Since(startTime)
-        status := c.Writer.Status()
-        
-        log.Printf("Request processed: %s %s %d %v",
-            c.Request.Method, c.Request.URL.Path, status, latency)
-    }
-}
+```
 
-// Authentication middleware
+### Applying Middlewares
+
+Middleware allows you to inject logic into the request-processing pipeline.
+Let's create a simple authentication middleware.
+
+```go
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
+// AuthMiddleware checks for a specific API token.
 func AuthMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        token := c.GetHeader("Authorization")
-        
-        if token == "" {
-            c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-                "error": "Authorization required",
-            })
-            return
-        }
-        
-        // Validate token (simplified)
-        if token != "valid-token" {
-            c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-                "error": "Invalid token",
-            })
-            return
-        }
-        
-        // Set user info to context
-        c.Set("user_id", "user123")
-        
-        // Continue
-        c.Next()
-    }
+	return func(c *gin.Context) {
+		token := c.GetHeader("X-API-Token")
+
+		// In a real app, you'd validate this token properly.
+		if token != "super-secret-token" {
+			// Abort the request and send an error response.
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "API token required"})
+			return
+		}
+
+		// Token is valid, pass the request to the next handler in the chain.
+		c.Next()
+	}
 }
+
+func main() {
+	router := gin.Default()
+
+	// Secure group using the middleware
+	secured := router.Group("/secure")
+	secured.Use(AuthMiddleware()) // Apply middleware to the group
+	{
+		secured.GET("/profile", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "this is a secure endpoint"})
+		})
+	}
+
+	router.Run(":8080")
+}
+
+```
+
+#### Middleware chaining
+
+In Gin, middleware functions are simply handler functions with a special purpose. They have the signature `func(c *
+gin.Context)`. The key to chaining is the `c.Next()` method. When a middleware function calls `c.Next()`, it pauses its
+own execution and passes control to the next middleware or the final handler in the chain. After the next function
+completes, control returns to the original middleware, which can then perform actions (e.g., logging a request's
+duration).
+
+If a middleware does not call `c.Next()`, the chain is effectively "short-circuited." The request will not proceed to
+subsequent middleware or the final handler, and the middleware is responsible for sending a response to the client. This
+is how authentication middleware, for example, can stop a request from reaching a protected route if the user is not
+authorized.
+
+**Example 1**: Basic Chaining with `c.Next()`
+In this example, when a GET request hits `/`, Gin first executes our `LoggerMiddleware`. This middleware records the
+start
+time and then calls `c.Next()`. This passes control to the final handler function, which sends a JSON response. After
+the
+handler is finished, control returns to the `LoggerMiddleware`, which calculates the request's latency and logs it.
+
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+// Logging middleware
+func LoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		// Process the next function in the chain
+		c.Next()
+
+		// Code here runs after the handler and subsequent middleware have completed
+		latency := time.Since(start)
+		log.Printf("Request took %v | %s | %s", latency, c.Request.Method, c.Request.URL.Path)
+	}
+}
+
+func main() {
+	r := gin.Default() // gin.Default() comes with Logger and Recovery middleware built-in
+
+	// Apply our custom logging middleware to the "/" route
+	r.GET("/", LoggerMiddleware(), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "Hello from Gin!"})
+	})
+
+	r.Run(":8080")
+}
+```
+
+```go
+
 ```
 
 ### Testing Gin Applications
@@ -438,393 +705,341 @@ Gin makes it easy to write tests for your HTTP handlers:
 package main
 
 import (
-    "encoding/json"
-    "github.com/gin-gonic/gin"
-    "github.com/stretchr/testify/assert"
-    "net/http"
-    "net/http/httptest"
-    "strings"
-    "testing"
+	"encoding/json"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
 )
 
 func setupRouter() *gin.Engine {
-    r := gin.Default()
-    
-    r.GET("/ping", func(c *gin.Context) {
-        c.JSON(200, gin.H{
-            "message": "pong",
-        })
-    })
-    
-    return r
+	r := gin.Default()
+
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "pong",
+		})
+	})
+
+	return r
 }
 
 func TestPingRoute(t *testing.T) {
-    // Set Gin to test mode
-    gin.SetMode(gin.TestMode)
-    
-    // Create a test router
-    router := setupRouter()
-    
-    // Create a test HTTP recorder
-    w := httptest.NewRecorder()
-    
-    // Create a test request
-    req, _ := http.NewRequest("GET", "/ping", nil)
-    
-    // Perform the request
-    router.ServeHTTP(w, req)
-    
-    // Assert status code
-    assert.Equal(t, http.StatusOK, w.Code)
-    
-    // Assert the response body
-    var response map[string]string
-    err := json.Unmarshal(w.Body.Bytes(), &response)
-    assert.Nil(t, err)
-    assert.Equal(t, "pong", response["message"])
+	// Set Gin to test mode
+	gin.SetMode(gin.TestMode)
+
+	// Create a test router
+	router := setupRouter()
+
+	// Create a test HTTP recorder
+	w := httptest.NewRecorder()
+
+	// Create a test request
+	req, _ := http.NewRequest("GET", "/ping", nil)
+
+	// Perform the request
+	router.ServeHTTP(w, req)
+
+	// Assert status code
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Assert the response body
+	var response map[string]string
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.Nil(t, err)
+	assert.Equal(t, "pong", response["message"])
 }
 
 func TestCreateUserRoute(t *testing.T) {
-    // Setup
-    gin.SetMode(gin.TestMode)
-    router := setupRouter()
-    
-    // Test JSON payload
-    payload := `{"id":"123","username":"testuser","email":"test@example.com","age":25}`
-    
-    // Create request
-    req, _ := http.NewRequest("POST", "/users", strings.NewReader(payload))
-    req.Header.Set("Content-Type", "application/json")
-    
-    // Perform request
-    w := httptest.NewRecorder()
-    router.ServeHTTP(w, req)
-    
-    // Assertions
-    assert.Equal(t, http.StatusCreated, w.Code)
-    
-    var response map[string]interface{}
-    err := json.Unmarshal(w.Body.Bytes(), &response)
-    assert.Nil(t, err)
-    assert.Equal(t, "User created successfully", response["message"])
+	// Setup
+	gin.SetMode(gin.TestMode)
+	router := setupRouter()
+
+	// Test JSON payload
+	payload := `{"id":"123","username":"testuser","email":"test@example.com","age":25}`
+
+	// Create request
+	req, _ := http.NewRequest("POST", "/users", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	// Perform request
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Assertions
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.Nil(t, err)
+	assert.Equal(t, "User created successfully", response["message"])
 }
 ```
 
-### Error Handling in Gin
+**Example 2**: Chaining with Authentication (Short-Circuiting)
+This example shows how a middleware can abort a request if a condition isn't met,
+preventing the final handler from being executed. In the code snippet below:
 
-Proper error handling is crucial for robust web applications:
-
-```go
-func main() {
-    r := gin.Default()
-    
-    // Custom error handling
-    r.Use(ErrorMiddleware())
-    
-    // Routes that might trigger errors
-    r.GET("/user/:id", getUserByID)
-    r.POST("/user", createUser)
-    
-    r.Run()
-}
-
-// Application errors
-type AppError struct {
-    Code    int
-    Message string
-}
-
-func (e *AppError) Error() string {
-    return e.Message
-}
-
-// Error middleware
-func ErrorMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        c.Next()
-        
-        // Check if there were any errors during handling
-        if len(c.Errors) > 0 {
-            for _, e := range c.Errors {
-                // Check for custom error type
-                if appErr, ok := e.Err.(*AppError); ok {
-                    c.JSON(appErr.Code, gin.H{
-                        "error": appErr.Message,
-                    })
-                    return
-                }
-            }
-            
-            // Default error handling
-            c.JSON(http.StatusInternalServerError, gin.H{
-                "error": "An unexpected error occurred",
-            })
-        }
-    }
-}
-
-// Handler with custom error
-func getUserByID(c *gin.Context) {
-    id := c.Param("id")
-    
-    if id == "0" {
-        // Add error to context
-        err := &AppError{
-            Code:    http.StatusNotFound,
-            Message: "User not found",
-        }
-        c.Error(err)
-        return
-    }
-    
-    // Normal response if no error
-    c.JSON(http.StatusOK, gin.H{
-        "id": id,
-        "name": "User Name",
-    })
-}
-```
-
-### Authentication and Authorization
-
-Implementing user authentication in Gin:
+- The `/public` route is open to everyone.
+- The `/protected` route group uses `AuthMiddleware()`. Any request to `/protected/admin` will first go through this
+  middleware.
+- The `AuthMiddleware` checks for a specific authorization token. If the token is incorrect, it
+  calls `c.AbortWithStatusJSON()`. This both sets the response and stops the request from going any further in the
+  chain. The final handler `protected.GET("/admin", ...)` is never reached.
+- If the token is valid, `c.Next()` is called, and the request proceeds to the handler, which then returns a successful
+  response.
 
 ```go
 package main
 
 import (
-    "github.com/gin-gonic/gin"
-    "github.com/dgrijalva/jwt-go"
-    "net/http"
-    "time"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-// Secret key for JWT
-var jwtKey = []byte("my_secret_key")
-
-// User credentials
-type Credentials struct {
-    Username string `json:"username" binding:"required"`
-    Password string `json:"password" binding:"required"`
-}
-
-// JWT claims struct
-type Claims struct {
-    Username string `json:"username"`
-    Role     string `json:"role"`
-    jwt.StandardClaims
+// Authentication middleware
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Check for an 'Authorization' header
+		token := c.GetHeader("Authorization")
+		if token != "Bearer mysecrettoken" {
+			// If not authorized, abort the request and send a 401 response
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			return // Don't call c.Next()
+		}
+		// If authorized, continue to the next handler
+		c.Next()
+	}
 }
 
 func main() {
-    r := gin.Default()
-    
-    // Login route
-    r.POST("/login", login)
-    
-    // Protected routes
-    authorized := r.Group("/")
-    authorized.Use(AuthMiddleware())
-    {
-        authorized.GET("/profile", getProfile)
-        authorized.GET("/refresh", refreshToken)
-    }
-    
-    // Admin routes
-    admin := r.Group("/admin")
-    admin.Use(AuthMiddleware(), AdminMiddleware())
-    {
-        admin.GET("/dashboard", adminDashboard)
-    }
-    
-    r.Run()
+	r := gin.Default()
+
+	// Public route - no middleware
+	r.GET("/public", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "This is a public route"})
+	})
+
+	// Protected route group
+	// Apply the AuthMiddleware to all routes in this group
+	protected := r.Group("/protected")
+	protected.Use(AuthMiddleware()) // .Use() is for applying middleware to a group
+
+	{
+		protected.GET("/admin", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "Welcome, authorized user!"})
+		})
+	}
+
+	r.Run(":8080")
 }
 
-func login(c *gin.Context) {
-    var creds Credentials
-    
-    if err := c.ShouldBindJSON(&creds); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        return
-    }
-    
-    // Check credentials (simplified)
-    var userRole string
-    if creds.Username == "admin" && creds.Password == "admin123" {
-        userRole = "admin"
-    } else if creds.Username == "user" && creds.Password == "user123" {
-        userRole = "user"
-    } else {
-        c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-        return
-    }
-    
-    // Create token expiration
-    expirationTime := time.Now().Add(15 * time.Minute)
-    
-    // Create claims
-    claims := &Claims{
-        Username: creds.Username,
-        Role:     userRole,
-        StandardClaims: jwt.StandardClaims{
-            ExpiresAt: expirationTime.Unix(),
-        },
-    }
-    
-    // Create token
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-    tokenString, err := token.SignedString(jwtKey)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
-        return
-    }
-    
-    c.JSON(http.StatusOK, gin.H{
-        "token": tokenString,
-        "expires_at": expirationTime,
-    })
-}
-
-func AuthMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        tokenString := c.GetHeader("Authorization")
-        if tokenString == "" {
-            c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-            return
-        }
-        
-        // Remove "Bearer " prefix if present
-        if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
-            tokenString = tokenString[7:]
-        }
-        
-        // Parse and validate token
-        claims := &Claims{}
-        token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-            return jwtKey, nil
-        })
-        
-        if err != nil || !token.Valid {
-            c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
-            return
-        }
-        
-        // Store user info in context
-        c.Set("username", claims.Username)
-        c.Set("role", claims.Role)
-        
-        c.Next()
-    }
-}
-
-func AdminMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        role, exists := c.Get("role")
-        if !exists || role != "admin" {
-            c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Admin access required"})
-            return
-        }
-        
-        c.Next()
-    }
-}
-
-func getProfile(c *gin.Context) {
-    username, _ := c.Get("username")
-    role, _ := c.Get("role")
-    
-    c.JSON(http.StatusOK, gin.H{
-        "username": username,
-        "role": role,
-    })
-}
-
-func refreshToken(c *gin.Context) {
-    // Implement token refresh logic
-}
-
-func adminDashboard(c *gin.Context) {
-    c.JSON(http.StatusOK, gin.H{
-        "message": "Welcome to the admin dashboard",
-    })
-}
 ```
 
-### Performance Considerations
+**Example 3**: Chaining Multiple Middlewares
 
-Optimizing Gin applications for production:
+In the code snippet below:
+
+1. Request Flow: A request to `/api/protected/resource` first enters the `protected` group.
+2. `RequestLogger`: This middleware runs first. It logs the start of the request and calls `c.Next()`, passing control to
+   the next middleware in the chain.
+3. `RateLimiter`: This middleware runs second. It checks if the client has exceeded the request limit. If the limit is
+   exceeded, it calls `c.AbortWithStatusJSON()` and returns, effectively stopping the chain. If not, it calls `c.Next()` to
+   continue.
+4. `AuthMiddleware`: This middleware runs third. It checks for a valid `Authorization` header. If the token is incorrect, it
+   calls `c.AbortWithStatusJSON()` and returns, stopping the chain. If the token is valid, it calls `c.Next()`.
+5. Final Handler: Only if all three middlewares successfully call `c.Next()` will the request reach the final handler for
+   `/resource`. The handler then sends its JSON response. After the response is sent, execution returns up the chain (in
+   reverse order), allowing the `RequestLogger` to complete its timing and logging.
 
 ```go
-func main() {
-    // Set Gin to release mode for production
-    gin.SetMode(gin.ReleaseMode)
-    
-    // Create a custom Engine without default middleware
-    r := gin.New()
-    
-    // Add essential middleware only
-    r.Use(gin.Recovery())
-    r.Use(gin.Logger())
-    
-    // Add custom middleware for performance tracking
-    r.Use(PerformanceMiddleware())
-    
-    // Configure routes
-    // ...
-    
-    // Set up custom HTTP server with timeouts
-    server := &http.Server{
-        Addr:         ":8080",
-        Handler:      r,
-        ReadTimeout:  5 * time.Second,
-        WriteTimeout: 10 * time.Second,
-        IdleTimeout:  120 * time.Second,
-    }
-    
-    // Graceful shutdown
-    go func() {
-        quit := make(chan os.Signal, 1)
-        signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-        <-quit
-        
-        ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-        defer cancel()
-        
-        if err := server.Shutdown(ctx); err != nil {
-            log.Fatal("Server forced to shutdown:", err)
-        }
-        
-        log.Println("Server exiting")
-    }()
-    
-    // Start the server
-    if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-        log.Fatal("Server startup error:", err)
-    }
+package main
+
+import (
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+// RequestLogger middleware logs the request method and path.
+func RequestLogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next() // Pass control to the next middleware or handler
+
+		// This part runs after the handler has completed
+		latency := time.Since(start)
+		log.Printf("[RequestLogger] %s %s took %v", c.Request.Method, c.Request.URL.Path, latency)
+	}
 }
 
-func PerformanceMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        startTime := time.Now()
-        
-        // Process request
-        c.Next()
-        
-        // Calculate latency
-        latency := time.Since(startTime)
-        
-        // Log if request takes too long
-        if latency > time.Second {
-            log.Printf("Slow request: %s %s took %v", 
-                c.Request.Method, c.Request.URL.Path, latency)
-        }
-    }
+// RateLimiter middleware limits requests to a specific endpoint.
+func RateLimiter() gin.HandlerFunc {
+	// A simple rate limit map to simulate limiting by client IP
+	requests := make(map[string]int)
+	lastReset := time.Now()
+
+	return func(c *gin.Context) {
+		// Reset the counter every minute
+		if time.Since(lastReset) > 1*time.Minute {
+			requests = make(map[string]int)
+			lastReset = time.Now()
+		}
+
+		clientIP := c.ClientIP()
+		requests[clientIP]++
+		if requests[clientIP] > 5 { // Allow up to 5 requests per minute
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Too many requests"})
+			log.Printf("[RateLimiter] Rate limit exceeded for IP: %s", clientIP)
+			return
+		}
+		c.Next()
+	}
+}
+
+// AuthMiddleware checks for a valid authorization token.
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.GetHeader("Authorization")
+		if token != "Bearer mysecrettoken" {
+			// Abort the chain if the token is invalid
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			log.Printf("[AuthMiddleware] Unauthorized request with token: %s", token)
+			return
+		}
+		log.Printf("[AuthMiddleware] User authorized")
+		c.Next()
+	}
+}
+
+func main() {
+	router := gin.Default()
+
+	// Apply multiple middlewares to a route group using .Use()
+	protected := router.Group("/api/protected")
+	protected.Use(RequestLogger(), RateLimiter(), AuthMiddleware())
+	{
+		// This handler will only be reached if all three middlewares pass
+		protected.GET("/resource", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "Access granted to the protected resource!"})
+		})
+	}
+
+	// This is a public route that bypasses all the middlewares
+	router.GET("/public", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "This is a public endpoint."})
+	})
+
+	router.Run(":8080")
 }
 ```
+
+### Handling Error
+
+A centralized error-handling middleware is a robust pattern. It catches errors returned from your handlers and formats a consistent error response.
+
+```go
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
+// Custom error struct
+type AppError struct {
+	Code    int
+	Message string
+}
+
+func (e *AppError) Error() string {
+	return e.Message
+}
+
+// Error handling middleware
+func ErrorHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next() // Process request
+
+		// After handler, check for errors
+		if len(c.Errors) > 0 {
+			err := c.Errors.Last().Err
+			var appErr *AppError
+			if errors.As(err, &appErr) {
+				// This is our custom error
+				c.JSON(appErr.Code, gin.H{"error": appErr.Message})
+			} else {
+				// This is an unexpected internal error
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			}
+		}
+	}
+}
+
+// Handler that can return an error
+func getUser(c *gin.Context) {
+	// ... logic to get a user ...
+	// If user not found:
+	err := &AppError{Code: http.StatusNotFound, Message: "User not found"}
+	c.Error(err) // Push error to context
+	c.Abort()    // Stop processing
+}
+
+```
+
+### Testing
+Testing your handlers is crucial. The `net/http/httptest` package is your best friend here.
+
+```go
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+// Setup a test router
+func setupRouter() *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	router := gin.New() // Use New to avoid default middleware in tests
+	router.GET("/ping", func(c *gin.Context) {
+		c.String(http.StatusOK, "pong")
+	})
+	return router
+}
+
+func TestPingRoute(t *testing.T) {
+	router := setupRouter()
+
+	// Create a new HTTP request
+	req, _ := http.NewRequest("GET", "/ping", nil)
+	// Create a ResponseRecorder to record the response
+	w := httptest.NewRecorder()
+
+	// Serve the HTTP request
+	router.ServeHTTP(w, req)
+
+	// Assertions
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "pong", w.Body.String())
+}
+
+```
+
+
 
 ### Common Gin Patterns and Best Practices
 
 1. **Proper Project Structure**
+
 ```
 ├── main.go           # Entry point
 ├── config/           # Configuration management
@@ -839,107 +1054,110 @@ func PerformanceMiddleware() gin.HandlerFunc {
 ```
 
 2. **Dependency Injection**
+
 ```go
 // Service interface
 type UserService interface {
-    GetUser(id string) (*User, error)
-    CreateUser(user *User) error
+GetUser(id string) (*User, error)
+CreateUser(user *User) error
 }
 
 // Controller with dependency injection
 type UserController struct {
-    service UserService
+service UserService
 }
 
 func NewUserController(service UserService) *UserController {
-    return &UserController{service: service}
+return &UserController{service: service}
 }
 
 func (uc *UserController) GetUser(c *gin.Context) {
-    id := c.Param("id")
-    user, err := uc.service.GetUser(id)
-    
-    if err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-        return
-    }
-    
-    c.JSON(http.StatusOK, user)
+id := c.Param("id")
+user, err := uc.service.GetUser(id)
+
+if err != nil {
+c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+return
+}
+
+c.JSON(http.StatusOK, user)
 }
 
 func SetupRoutes(r *gin.Engine, uc *UserController) {
-    r.GET("/users/:id", uc.GetUser)
-    // Other routes
+r.GET("/users/:id", uc.GetUser)
+// Other routes
 }
 
 func main() {
-    r := gin.Default()
-    
-    // Initialize dependencies
-    userService := NewRealUserService()
-    userController := NewUserController(userService)
-    
-    // Setup routes
-    SetupRoutes(r, userController)
-    
-    r.Run()
+r := gin.Default()
+
+// Initialize dependencies
+userService := NewRealUserService()
+userController := NewUserController(userService)
+
+// Setup routes
+SetupRoutes(r, userController)
+
+r.Run()
 }
 ```
 
 ### Common Challenges and Solutions
 
 1. **Handling CORS**
+
 ```go
 func main() {
-    r := gin.Default()
-    
-    // CORS middleware
-    r.Use(func(c *gin.Context) {
-        c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-        c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-        c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        
-        if c.Request.Method == "OPTIONS" {
-            c.AbortWithStatus(204)
-            return
-        }
-        
-        c.Next()
-    })
-    
-    // Routes
-    // ...
-    ge branches
-    r.Run()
+r := gin.Default()
+
+// CORS middleware
+r.Use(func (c *gin.Context) {
+c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+if c.Request.Method == "OPTIONS" {
+c.AbortWithStatus(204)
+return
+}
+
+c.Next()
+})
+
+// Routes
+// ...
+ge branches
+r.Run()
 }
 ```
 
 2. **Rate Limiting**
+
 ```go
 func RateLimiter() gin.HandlerFunc {
-    // Simple in-memory rate limiter
-    limits := make(map[string]int)
-    mutex := &sync.Mutex{}
-    
-    return func(c *gin.Context) {
-        ip := c.ClientIP()
-        
-        mutex.Lock()
-        if limits[ip] >= 100 {  // 100 requests per minute
-            mutex.Unlock()
-            c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
-                "error": "Rate limit exceeded",
-            })
-            return
-        }
-        
-        limits[ip]++
-        mutex.Unlock()
-        
-        // Reset counters periodically (in a real app, use a timer)
-        
-        c.Next()
-    }
+// Simple in-memory rate limiter
+limits := make(map[string]int)
+mutex := &sync.Mutex{}
+
+return func (c *gin.Context) {
+ip := c.ClientIP()
+
+mutex.Lock()
+if limits[ip] >= 100 {  // 100 requests per minute
+mutex.Unlock()
+c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+"error": "Rate limit exceeded",
+})
+return
+}
+
+limits[ip]++
+mutex.Unlock()
+
+// Reset counters periodically (in a real app, use a timer)
+
+c.Next()
+}
 }
 ```
 
@@ -952,6 +1170,7 @@ func RateLimiter() gin.HandlerFunc {
 5. Build a microservice architecture using multiple Gin services
 
 ### Recommended Resources
+
 - "Building Web Applications with Go and Gin" by Sam Thorogood
 - Gin Framework official documentation
 - "Web Development with Go" by Shiju Varghese (includes Gin sections)
