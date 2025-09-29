@@ -135,16 +135,23 @@ A `select` blocks until one of its cases can run, then it executes that case.
 It chooses one at random if multiple are ready.
 
 ```go
-select {
-case msg1 := <-ch1:
-fmt.Println("received", msg1)
-case msg2 := <-ch2:
-fmt.Println("received", msg2)
-default:
-// This default case makes the select non-blocking
-fmt.Println("no communication")
-}
+package main
 
+import (
+	"fmt"
+)
+
+func main() {
+	select {
+	case msg1 := <-ch1:
+		fmt.Println("received", msg1)
+	case msg2 := <-ch2:
+		fmt.Println("received", msg2)
+	default:
+		// This default case makes the select non-blocking
+		fmt.Println("no communication")
+	}
+}
 ```
 
 #### Ranging Over Channels and Closing
@@ -245,7 +252,7 @@ only one goroutine can access a critical section of code at a time.
 The lifecycle of a goroutine in Go can be described through the following stages:
 
 1. Creation:
-    - A goroutine is created when a function or method call is prefixed with the go keyword.
+    - A goroutine is created when a function or method call is prefixed with the `go` keyword.
     - The Go runtime allocates a small initial stack for the goroutine, typically a few kilobytes. This stack can grow
       or shrink dynamically as needed.
 2. Running:
