@@ -29,9 +29,8 @@ Echo is a modern and lightweight web framework for Go that makes it simple to bu
 applications.
 With its clean design, powerful routing, and rich middleware support, Echo helps developers quickly create RESTful APIs
 and backend
-services while keeping code maintainable and efficient. This course will guide you step by step, from the basics to
-advanced practices,
-so you can master Echo and apply it to real-world projects.
+services while keeping code maintainable and efficient. This module guides you step by step from the basics to advanced topics, 
+helping you master Echo through practical examples.
 
 ## Introduction to Echo
 
@@ -118,35 +117,28 @@ func main() {
 
 ### Engine
 
-The Echo Engine is the core of the framework. It’s the main instance you create with echo.New(). The engine is
-responsible
-for registering routes, attaching middleware, and starting the HTTP server. You can customize it by adding middleware,
-defining
-handlers, and configuring server settings.
+The Echo Engine is the core of the framework. It’s the main instance you create with `echo.New()`. 
+The engine is responsible for registering routes, attaching middleware, and starting the HTTP server. 
+You can customize it by adding middleware, defining handlers, and configuring server settings.
 
-### Context (echo.Context)
+### Echo Context (`echo.Context`)
 
-The `Context` is the most important component in Echo. It encapsulates the HTTP request and response, giving you
-convenient
-methods to read parameters, headers, query strings, and request bodies. It also provides functions to send responses in
-various
-formats (JSON, HTML, text, file, etc.), making request–response handling simple and efficient.
+The `Context` is the most important component in Echo. It encapsulates the HTTP request and response, 
+giving you convenient methods to read parameters, headers, query strings, and request bodies. It also 
+provides functions to send responses in various formats (JSON, HTML, text, file, etc.), making request–response 
+handling simple and efficient.
 
 ### Router Groups
 
 Echo provides Group functionality to organize routes under a shared path prefix and middleware. For example, you can
-group routes
-by version (e.g., `/api/v1/users`, `/api/v1/products`) and apply authentication middleware only once at the group level.
-This keeps
-code modular and easier to maintain.
+group routes by version (e.g., `/api/v1/users`, `/api/v1/products`) and apply authentication middleware only once at 
+the group level. This keeps code modular and easier to maintain.
 
 ### Middleware
 
 Middleware in Echo are functions executed before or after handlers. They can be applied globally, per route, or per
-group. Common use
-cases include logging, error handling, authentication, authorization, rate limiting, and CORS. Middleware can control
-request flow by
-calling `next(c)` to continue or aborting with an error response.
+group. Common use cases include logging, error handling, authentication, authorization, rate limiting, and CORS. Middleware 
+can control request flow by calling `next(c)` to continue or aborting with an error response.
 
 ## Quick Start
 
@@ -202,7 +194,7 @@ func main() {
 		})
 	})
 
-	e.Start(":8080") // listen and serve on 0.0.0.0:8080
+	router.Start(":8080") // listen and serve on 0.0.0.0:8080
 }
 ```
 
@@ -245,7 +237,7 @@ func main() {
 		})
 	})
 
-	e.Start(":8080") // listen and serve on 0.0.0.0:8080
+	router.Start(":8080") // listen and serve on 0.0.0.0:8080
 }
 ```
 
@@ -320,10 +312,10 @@ import (
 )
 
 func main() {
-	r := echo.New()
+	router := echo.New()
 
 	// API route group
-	api := r.Group("/api")
+	api := router.Group("/api")
 	{
 		// /api/users
 		api.GET("/users", getUsers)
@@ -345,13 +337,13 @@ func main() {
 	}
 
 	// Admin route group with different middleware
-	admin := r.Group("/admin", AuthMiddleware())
+	admin := router.Group("/admin", AuthMiddleware())
 	{
 		admin.GET("/analytics", getAnalytics)
 		admin.GET("/users", adminGetUsers)
 	}
 
-	r.Start(":8080")
+	router.Start(":8080")
 }
 
 ```
@@ -442,7 +434,6 @@ func main() {
 
 	router.Start(":8080")
 }
-
 ```
 
 #### Request Body
@@ -562,11 +553,11 @@ func upload(c echo.Context) error {
 }
 
 func main() {
-	e := echo.New()
+	router := echo.New()
 
-	e.POST("/upload", upload)
+	router.POST("/upload", upload)
 
-	e.Start(":8080")
+	router.Start(":8080")
 }
 ```
 
@@ -647,16 +638,790 @@ func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 func main() {
-	e := echo.New()
+	router := echo.New()
 
 	// Secure group using the middleware
-	secured := e.Group("/secure", AuthMiddleware)
+	secured := router.Group("/secure", AuthMiddleware)
 	secured.GET("/profile", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]any{
 			"message": "this is a secure endpoint",
 		})
 	})
 
-	e.Start(":8080")
+	router.Start(":8080")
 }
 ```
+
+### Chaining Middleware
+
+In Echo, middleware functions are special handler functions that can process logic 
+before and/or after the main route handler executes. They have the signature:
+```go
+func(next echo.HandlerFunc) echo.HandlerFunc
+```
+A middleware receives a next handler and returns another handler.
+To pass control to the next middleware or final handler, it must call:
+```go
+return next(c)
+```
+If a middleware does not call `next(c)`, the chain is effectively short-circuited — the 
+request will not continue to subsequent middleware or the final route handler. In that 
+case, the middleware itself is responsible for sending the response to the client.
+
+**Example 1**: Basic Chaining with `c.Next()`
+In this example, when a GET request hits `/`, Echo first executes our `LoggerMiddleware`. This 
+middleware records the start time, then calls `next(c)` — passing control to the final handler 
+function, which sends a JSON response. After the handler completes, control returns to the 
+middleware, which calculates the request’s latency and logs it.
+
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/labstack/echo/v4"
+)
+
+// Logging middleware
+func LoggerMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			start := time.Now()
+
+			// Process the next function in the chain
+			err := next(c)
+
+			// Code here runs after the handler and subsequent middleware have completed
+			latency := time.Since(start)
+			log.Printf("Request took %v | %s | %s", latency, c.Request().Method, c.Request().URL.Path)
+
+			return err
+		}
+	}
+}
+
+func main() {
+	router := echo.New()
+
+	// Apply our custom logging middleware to the "/" route
+	router.GET("/", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]any{
+			"message": "Hello from Echo!",
+		})
+	}, LoggerMiddleware())
+
+	router.Logger.Fatal(e.Start(":8080"))
+}
+```
+
+**Example 2**: Chaining with Authentication (Short-Circuiting)
+This example shows how an Echo middleware can abort a request if a condition isn’t 
+met — preventing the final handler from executing.
+
+- The `/public` route is open to everyone.
+- The `/protected` route group uses `AuthMiddleware()`. Any request to `/protected/admin` will first 
+- go through this middleware.
+- The `AuthMiddleware` checks for a specific authorization token.
+- If the token is invalid, it returns an error response immediately, without calling `next(c)` — effectively short-circuiting the chain.
+- If the token is valid, it calls `next(c)`, allowing the request to proceed to the handler, which returns a successful response.
+
+```go
+package main
+
+import (
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+)
+
+// Authentication middleware
+func AuthMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Check for an 'Authorization' header
+			token := c.Request().Header.Get("Authorization")
+
+			if token != "Bearer mysecrettoken" {
+				// If not authorized, return 401 and stop further execution
+				return c.JSON(http.StatusUnauthorized, map[string]any{
+					"error": "Unauthorized",
+				})
+			}
+
+			// If authorized, continue to the next handler
+			return next(c)
+		}
+	}
+}
+
+func main() {
+	router := echo.New()
+
+	// Public route - no middleware
+	router.GET("/public", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]any{
+			"message": "This is a public route",
+		})
+	})
+
+	// Protected route group
+	protected := router.Group("/protected", AuthMiddleware())
+
+	protected.GET("/admin", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]any{
+			"message": "Welcome, authorized user!",
+		})
+	})
+
+	router.Logger.Fatal(router.Start(":8080"))
+}
+```
+
+**Example 3**: Chaining Multiple Middlewares
+
+In the code snippet below:
+
+1. Request Flow: A request to `/api/protected/resource` first enters the `protected` group.
+2. `RequestLogger`: Runs first. Logs request start time, then calls `next(c)` to pass control to the next middleware.
+3. `RateLimiter`: Runs second. If the client exceeds the limit, it returns a `429 Too Many Requests` response and stops the chain. Otherwise, it calls `next(c)`.
+4. `AuthMiddleware`: Runs third. If the `Authorization` header is invalid, it returns `401 Unauthorized` and stops the chain. If valid, it calls `next(c)`.
+5. Final Handler: Executes only if all previous middlewares successfully call `next(c)`. After the response is sent, control returns up the chain, allowing RequestLogger to complete its timing and logging.
+
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+	"sync"
+	"time"
+
+	"github.com/labstack/echo/v4"
+)
+
+// RequestLogger middleware logs the request method and path.
+func RequestLogger() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			start := time.Now()
+			err := next(c) // Pass control to the next middleware or handler
+
+			// This part runs after the handler has completed
+			latency := time.Since(start)
+			log.Printf("[RequestLogger] %s %s took %v", c.Request().Method, c.Request().URL.Path, latency)
+
+			return err
+		}
+	}
+}
+
+// RateLimiter middleware limits requests to a specific endpoint.
+func RateLimiter() echo.MiddlewareFunc {
+	var mu sync.Mutex
+	requests := make(map[string]int)
+	lastReset := time.Now()
+
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			mu.Lock()
+			defer mu.Unlock()
+
+			// Reset the counter every minute
+			if time.Since(lastReset) > time.Minute {
+				requests = make(map[string]int)
+				lastReset = time.Now()
+			}
+
+			clientIP := c.RealIP()
+			requests[clientIP]++
+
+			if requests[clientIP] > 5 { // Allow up to 5 requests per minute
+				log.Printf("[RateLimiter] Rate limit exceeded for IP: %s", clientIP)
+				return c.JSON(http.StatusTooManyRequests, map[string]any{
+					"error": "Too many requests",
+				})
+			}
+
+			// Continue to the next middleware
+			return next(c)
+		}
+	}
+}
+
+// AuthMiddleware checks for a valid authorization token.
+func AuthMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			token := c.Request().Header.Get("Authorization")
+			if token != "Bearer mysecrettoken" {
+				log.Printf("[AuthMiddleware] Unauthorized request with token: %s", token)
+				return c.JSON(http.StatusUnauthorized, map[string]any{
+					"error": "Unauthorized",
+				})
+			}
+
+			log.Printf("[AuthMiddleware] User authorized")
+			return next(c)
+		}
+	}
+}
+
+func main() {
+	router := echo.New()
+
+	// Protected route group with multiple middlewares
+	protected := router.Group("/api/protected",
+		RequestLogger(),
+		RateLimiter(),
+		AuthMiddleware(),
+	)
+
+	// Handler only runs if all middlewares succeed
+	protected.GET("/resource", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]any{
+			"message": "Access granted to the protected resource!",
+		})
+	})
+
+	// Public route bypassing all middlewares
+	router.GET("/public", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]any{
+			"message": "This is a public endpoint.",
+		})
+	})
+
+	router.Logger.Fatal(router.Start(":8080"))
+}
+```
+
+### Handling Error
+A centralized error-handling middleware is a robust pattern. It catches errors returned from your handlers and formats a
+consistent error response.
+
+```go
+package main
+
+import (
+	"errors"
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+)
+
+// Custom error struct
+type AppError struct {
+	Code    int
+	Message string
+}
+
+func (e *AppError) Error() string {
+	return e.Message
+}
+
+// Error handling middleware
+func ErrorHandler(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		// Execute the next handler in the chain
+		err := next(c)
+		if err == nil {
+			return nil
+		}
+
+		// Check if it's our custom AppError
+		var appErr *AppError
+		if errors.As(err, &appErr) {
+			return c.JSON(appErr.Code, map[string]any{
+				"error": appErr.Message,
+			})
+		}
+
+		// Unexpected internal error
+		return c.JSON(http.StatusInternalServerError, map[string]any{
+			"error": "Internal Server Error",
+		})
+	}
+}
+
+// Handler that can return an error
+func getUser(c echo.Context) error {
+	// ... logic to get a user ...
+	// Simulate a "not found" situation
+	return &AppError{Code: http.StatusNotFound, Message: "User not found"}
+}
+
+func main() {
+	router := echo.New()
+
+	// Apply the error handling middleware globally
+	router.Use(ErrorHandler)
+
+	// Route that can trigger an error
+	router.GET("/user/:id", getUser)
+
+	router.Logger.Fatal(e.Start(":8080"))
+}
+```
+
+### Testing
+
+#### Set up the Test Environment
+
+Before writing tests, it’s good practice to create a reusable setup function.
+This function initializes a clean Echo instance, configures routes, and returns it for each test case.
+You’ll typically place this code in a file named `main_test.go` or `router_test.go`.
+
+```go
+package main
+
+import (
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+)
+
+// setupRouter initializes the Echo router with all its routes.
+func setupRouter() *echo.Echo {
+	router := echo.New()
+
+	router.GET("/ping", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]any{
+			"message": "pong",
+		})
+	})
+
+	return router
+}
+
+```
+
+#### Testing a GET Endpoint
+Testing a `GET` request is the most straightforward scenario. You don't need to send a request body, only the path.
+
+Scenario: Test a simple `/ping` endpoint that returns a JSON response.
+
+```go
+package main
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+)
+
+// TestPingRoute tests the GET /ping endpoint
+func TestPingRoute(t *testing.T) {
+	// 1. Get the Echo router instance
+	router := setupRouter()
+
+	// 2. Create a new HTTP request
+	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	rec := httptest.NewRecorder()
+
+	// 3. Create a new Echo context
+	c := router.NewContext(req, rec)
+
+	// 4. Serve the request to the router
+	// Note: In Echo, use e.ServeHTTP(rec, req) for end-to-end testing
+	router.ServeHTTP(rec, req)
+
+	// 5. Assert the response
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.JSONEq(t, `{"message":"pong"}`, rec.Body.String())
+}
+```
+
+#### Testing a POST Endpoint with JSON Body
+
+Testing a `POST` request requires sending a request body and setting the correct content type header.
+
+Scenario: Test a `/user` endpoint that binds a JSON body to a struct and returns the created user.
+
+First, define the handler logic:
+
+```go
+package main
+
+import (
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+)
+
+// User represents a user struct.
+type User struct {
+	Name  string `json:"name" validate:"required"`
+	Email string `json:"email"`
+}
+
+// postUserHandler handles creating a new user.
+func postUserHandler(c echo.Context) error {
+	var user User
+
+	// Bind JSON body to struct
+	if err := c.Bind(&user); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{
+			"error": err.Error(),
+		})
+	}
+	
+	// Return created user as JSON
+	return c.JSON(http.StatusCreated, user)
+}
+
+// setupRouter initializes the Echo router with routes
+func setupRouter() *echo.Echo {
+	router := echo.New()
+	router.POST("/user", postUserHandler)
+	return router
+}
+```
+
+Testing logic:
+
+```go
+package main
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+// in main_test.go
+func TestPostUser(t *testing.T) {
+	router := setupRouter()
+
+	// Define the request body as a JSON string
+	jsonBody := `{"name":"John Doe", "email":"john.doe@example.com"}`
+
+	// Create a new HTTP POST request with JSON body
+	req := httptest.NewRequest(http.MethodPost, "/user", strings.NewReader(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	// Create a response recorder
+	rec := httptest.NewRecorder()
+
+	// Serve the request
+	router.ServeHTTP(rec, req)
+
+	// Assert the response
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.JSONEq(t, jsonBody, rec.Body.String())
+}
+```
+
+#### Testing with URL and Query Parameters
+**Scenario**: Test an endpoint that uses both a URL parameter and a query parameter.
+
+```go
+package main
+
+import (
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+)
+
+// getProductHandler handles a request with a URL param and query param
+func getProductHandler(c echo.Context) error {
+	id := c.Param("id")
+	sort := c.QueryParam("sort")
+	if sort == "" {
+		sort = "asc"
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"product_id": id,
+		"sort_by":    sort,
+	})
+}
+
+// setupRouter initializes the Echo router with routes
+func setupRouter() *echo.Echo {
+	router := echo.New()
+	router.GET("/products/:id", getProductHandler)
+	return router
+}
+```
+
+Now, the test:
+
+```go
+package main
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+// in main_test.go
+func TestGetProductWithParams(t *testing.T) {
+	router := setupRouter()
+
+	// Test with both URL and query parameters
+	req := httptest.NewRequest(http.MethodGet, "/products/123?sort=desc", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.JSONEq(t, `{"product_id":"123","sort_by":"desc"}`, rec.Body.String())
+
+	// Test with URL parameter only (no query -> default to "asc")
+	req = httptest.NewRequest(http.MethodGet, "/products/456", nil)
+	rec = httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.JSONEq(t, `{"product_id":"456","sort_by":"asc"}`, rec.Body.String())
+}
+```
+
+## Common Echo Patterns and Best Practices
+
+#### Project Structure
+
+```
+├── main.go           # Entry point
+├── config/           # Configuration management
+├── controllers/      # HTTP handlers
+├── middleware/       # Custom middleware
+├── models/           # Data models
+├── routes/           # Route definitions
+├── services/         # Business logic
+├── templates/        # HTML templates
+├── utils/            # Helper functions
+└── tests/            # Test files
+```
+
+### Dependency Injection
+
+```go
+package main
+
+import (
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+)
+
+// User represents a user model
+type User struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+// Service interface
+type UserService interface {
+	GetUser(id string) (*User, error)
+	CreateUser(user *User) error
+}
+
+// Controller with dependency injection
+type UserController struct {
+	service UserService
+}
+
+// Constructor
+func NewUserController(service UserService) *UserController {
+	return &UserController{service: service}
+}
+
+// Handler: GET /users/:id
+func (uc *UserController) GetUser(c echo.Context) error {
+	id := c.Param("id")
+	user, err := uc.service.GetUser(id)
+
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]any{
+			"error": "User not found",
+		})
+	}
+
+	return c.JSON(http.StatusOK, user)
+}
+
+// Setup routes
+func SetupRoutes(e *echo.Echo, uc *UserController) {
+	e.GET("/users/:id", uc.GetUser)
+	// Other routes (e.g., e.POST("/users", uc.CreateUser))
+}
+
+// Example of a real implementation of UserService
+type RealUserService struct{}
+
+func NewRealUserService() *RealUserService {
+	return &RealUserService{}
+}
+
+func (s *RealUserService) GetUser(id string) (*User, error) {
+	// Simulate data fetch
+	if id != "1" {
+		return nil, echo.NewHTTPError(http.StatusNotFound, "User not found")
+	}
+	return &User{ID: "1", Name: "John Doe", Email: "john@example.com"}, nil
+}
+
+func (s *RealUserService) CreateUser(user *User) error {
+	// Simulate creating a user
+	return nil
+}
+
+func main() {
+	router := echo.New()
+
+	// Initialize dependencies
+	userService := NewRealUserService()
+	userController := NewUserController(userService)
+
+	// Setup routes
+	SetupRoutes(router, userController)
+
+	router.Logger.Fatal(router.Start(":8080"))
+}
+```
+
+## Common Challenges and Solutions
+
+### Handling CORS
+
+```go
+package main
+
+import (
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+)
+
+// Custom CORS middleware
+func CORSMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		// Set CORS headers
+		c.Response().Header().Set(echo.HeaderAccessControlAllowOrigin, "*")
+		c.Response().Header().Set(echo.HeaderAccessControlAllowMethods, "GET, POST, PUT, DELETE, OPTIONS")
+		c.Response().Header().Set(echo.HeaderAccessControlAllowHeaders, "Content-Type, Authorization")
+
+		// Handle preflight requests
+		if c.Request().Method == http.MethodOptions {
+			return c.NoContent(http.StatusNoContent)
+		}
+
+		// Continue to next handler
+		return next(c)
+	}
+}
+
+func main() {
+	router := echo.New()
+
+	// Apply CORS middleware globally
+	router.Use(CORSMiddleware)
+
+	// Example routes
+	router.GET("/branches", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]any{
+			"message": "List of branches",
+		})
+	})
+
+	router.POST("/branches", func(c echo.Context) error {
+		return c.JSON(http.StatusCreated, map[string]any{
+			"message": "Branch created",
+		})
+	})
+
+	// Start the server
+	router.Logger.Fatal(router.Start(":8080"))
+}
+
+```
+
+### Rate Limiting
+
+```go
+package main
+
+import (
+	"net/http"
+	"sync"
+	"time"
+
+	"github.com/labstack/echo/v4"
+)
+
+// RateLimiter middleware for Echo
+func RateLimiter() echo.MiddlewareFunc {
+	limits := make(map[string]int)
+	mutex := &sync.Mutex{}
+	lastReset := time.Now()
+
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			ip := c.RealIP()
+
+			mutex.Lock()
+			defer mutex.Unlock()
+
+			// Reset counters every minute
+			if time.Since(lastReset) > time.Minute {
+				limits = make(map[string]int)
+				lastReset = time.Now()
+			}
+
+			// Check the request count for this IP
+			if limits[ip] >= 100 { // 100 requests per minute
+				return c.JSON(http.StatusTooManyRequests, map[string]any{
+					"error": "Rate limit exceeded",
+				})
+			}
+
+			// Increment count
+			limits[ip]++
+
+			// Continue to the next middleware/handler
+			return next(c)
+		}
+	}
+}
+
+func main() {
+	router := echo.New()
+
+	// Apply rate limiter globally
+	router.Use(RateLimiter())
+
+	router.GET("/", func(c echo.Context) error {
+		return c.String(http.StatusOK, "Hello, Echo!")
+	})
+
+	router.Logger.Fatal(router.Start(":8080"))
+}
+
+```
+
+## Practical Exercises
+
+### Exercise 1: Basic Echo API
+
+Create a simple RESTful API using Echo framework to manage a todo list:
+
+### Exercise 2: CRUD “User Management” API
+
+Practice CRUD operations (Create, Read, Update, Delete):
+
+### Exercise 3: Middleware & Validation
+
+Create a middleware that checks for an X-API-KEY header. Validate request data before creating a user. Apply middleware to a specific route group.
