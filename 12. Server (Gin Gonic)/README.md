@@ -176,7 +176,7 @@ If you don’t have a go.mod file, create it with `go mod init gin`.
     ```
 4. Start the server
     ```shell
-    go run example.go
+    go run main.go
     ```
 
 ## Features
