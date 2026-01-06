@@ -342,6 +342,159 @@ e.POST("/forms", func(c echo.Context) error{
 })
 ```
 
+#### File upload
+```go
+func uploadFile(c echo.Context) error {
+	file, err := c.FormFile("file")
+	if err != nil {
+		return err
+	}
+
+	//Handle upload file
+    dst := "uploads/" + file.Filename
+	if err := saveFile(file, dst); err != nil{
+	    return err
+    }
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"filename": file.Filename,
+	})
+}
+
+```
+### Handling Response
+
+Echo provides helpers for various response types:
+
+```go
+c.JSON(http.StatusOK, data)
+c.String(http.StatusOK, "plain text")
+c.HTML(http.StatusOK, "index.html", data)
+c.Redirect(http.StatusMovedPermanently, "/login")
+c.File("file.pdf")
+```
+
+### Applying Middleware
+Middleware can be applied globally or to route groups.
+```go
+func CustomLogger(next echo.HandlerFunc) echo.HandlerFunc {
+    return func(c echo.Context) error {
+       // Logic before the handler is executed 
+       log.Printf("Incoming request: %s %s", c.Request().Method, c.Request().URL.Path)
+       
+       // Call the next handler in the chain
+       return next(c)
+    }
+}
+
+
+e.Use(middleware.Logger())
+e.Use(middleware.Recover())
+e.Use(CustomLogger)
+```
+
+### Chaining Middleware
+Middleware execution follows the order in which it is registered. Each middleware explicitly decides whether to continue the request flow by calling the next handler.
+
+If a middleware returns an error, the chain stops and the error handler is invoked.
+
+A middleware controls the flow by:
+- Calling next(c) → continue to the next middleware or handler
+- Returning an error → stop the chain and invoke the error handler
+
+### Handling Errors
+
+Echo uses a centralized error handling mechanism.
+```go
+e.HTTPErrorHandler = func(err error, c echo.Context) {
+    code := http.StatusInternalServerError
+    if he, ok := err.(*echo.HTTPError); ok {
+        code = he.Code
+    }
+    c.JSON(code, map[string]string{"error": err.Error()})
+}
+```
+
+Handlers and middleware may return errors to trigger this mechanism.
+
+## Common Echo Patterns and Best Practices
+
+### Project Structure
+
+```
+├── main.go          # Entry point
+├── config/          # Configuration management
+├── controllers/     # HTTP handlers
+├── middleware/      # Custom middleware
+├── models/          # Data models
+├── routes/          # Route definitions
+├── services/        # Business logic
+├── templates/       # HTML templates
+├── utils/           # Helper functions
+└── tests/           # Test files
+
+```
+
+### Dependency Injection
+
+```go
+package main
+
+import (
+   "net/http"
+   "github.com/labstack/echo/v4"
+)
+
+// Service interface
+type User struct{}
+
+type UserService interface {
+   GetUser(id string) (*User, error)
+   CreateUser(user *User) error
+}
+
+// Controller with dependency injection
+type UserController struct {
+   service UserService
+}
+
+func NewUserController(service UserService) *UserController {
+   return &UserController{service: service}
+}
+
+func (uc *UserController) GetUser(c echo.Context) error {
+   id := c.Param("id")
+
+   user, err := uc.service.GetUser(id)
+   if err != nil {
+      return echo.NewHTTPError(http.StatusNotFound, "User not found")
+   }
+
+   return c.JSON(http.StatusOK, user)
+}
+
+func SetupRoutes(r *echo.Echo, uc *UserController) {
+   r.GET("/users/:id", uc.GetUser)
+   // Other routes
+}
+
+func main() {
+   e := echo.New()
+
+   // Initialize dependencies
+   userService := NewUserService()
+   userController := NewUserController(userService)
+
+   // Setup routes
+   SetupRoutes(e, userController)
+
+   e.Logger.Fatal(e.Start(":8080"))
+}
+
+```
+
+
+
 #################################
 
 #### Route Groups
