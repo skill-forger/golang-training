@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <title>Go File Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .upload-form {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .progress {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 5px;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background-color: #4CAF50;
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .file-item {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+<h1>File Upload with Go & Gin</h1>
+
+<div class="upload-form">
+    <h2>Upload File</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button type="submit">Upload</button>
+    </form>
+    <div class="progress" style="display:none;">
+        <div class="progress-bar" id="progressBar"></div>
+        <div id="progressText">0%</div>
+    </div>
+</div>
+
+<h2>Uploaded Files</h2>
+<div id="fileList">
+    Loading files...
+</div>
+
+<script>
+    // Load file list on page load
+    document.addEventListener('DOMContentLoaded', loadFiles);
+
+    // Handle form submission
+    document.getElementById('uploadForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const fileInput = document.querySelector('input[name="file"]');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert('Please select a file to upload');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const xhr = new XMLHttpRequest();
+
+        // Show progress bar
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        document.querySelector('.progress').style.display = 'block';
+
+        // Track upload progress
+        xhr.upload.addEventListener('progress', function (e) {
+            if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                progressBar.style.width = percentComplete + '%';
+                progressText.textContent = percentComplete + '%';
+            }
+        });
+
+        xhr.addEventListener('load', function () {
+            if (xhr.status === 200) {
+                alert('File uploaded successfully!');
+                fileInput.value = '';
+                loadFiles();
+            } else {
+                alert('Upload failed: ' + xhr.responseText);
+            }
+
+            // Hide progress bar after upload
+            setTimeout(() => {
+                document.querySelector('.progress').style.display = 'none';
+                progressBar.style.width = '0%';
+                progressText.textContent = '0%';
+            }, 1000);
+        });
+
+        xhr.open('POST', `/upload`, true);
+        xhr.send(formData);
+    });
+
+    // Load list of uploaded files
+    function loadFiles() {
+        fetch(`/files-list`)
+            .then(response => response.json())
+            .then(data => {
+                const fileList = document.getElementById('fileList');
+
+                if (data.length === 0) {
+                    fileList.innerHTML = '<p>No files uploaded yet.</p>';
+                    return;
+                }
+
+                let html = '';
+                data.forEach(file => {
+                    const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                    html += `
+		<div class="file-item">
+		<strong>${file.filename}</strong> (${sizeInMB} MB)
+		<div>Type: ${file.mime_type}</div>
+		<div>Uploaded: ${new Date(file.uploaded_at).toLocaleString()}</div>
+		<a href="/files/${file.filename}" target="_blank">Download</a>
+		</div>
+			`;
+                });
+
+                fileList.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error loading files:', error);
+                document.getElementById('fileList').innerHTML = '<p>Error loading files.</p>';
+            });
+    }
+</script>
+</body>
+</html>
+		
