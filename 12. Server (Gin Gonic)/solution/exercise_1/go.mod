@@ -1,6 +1,6 @@
 module golang-training/module-12/exercise-1
 
-go 1.24
+go 1.25
 
 require github.com/gin-gonic/gin v1.10.1
 
