@@ -1,6 +1,6 @@
 module golang-training/module-13/exercise-2
 
-go 1.24.3
+go 1.25
 
 require github.com/labstack/echo/v4 v4.15.0
 
