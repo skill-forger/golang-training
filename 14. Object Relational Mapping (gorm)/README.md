@@ -326,7 +326,7 @@ db.Delete(&users, []int{1,2,3})
 #### Soft delete
 If your model includes a `gorm.DeletedAt` field (which is included in `gorm.Model`), it will get soft delete ability automatically!
 
-When calling Delete, the record wont’t be removed from the database, but GORM will set the DeletedAt‘s value to the current time, and the data is not findable with normal Query methods anymore.
+When calling Delete, the record won't be removed from the database, but GORM will set the DeletedAt's value to the current time, and the data is not findable with normal Query methods anymore.
 
 
 ```go
@@ -343,7 +343,7 @@ db.Where("age = 20").Find(&user)
 // SELECT * FROM users WHERE age = 20 AND deleted_at IS NULL;
 ```
 
-If you don’t want to include gorm.Model, you can enable the soft delete feature like:
+If you don't want to include gorm.Model, you can enable the soft delete feature like:
 ```go
 type User struct {
     ID      int
@@ -366,81 +366,522 @@ db.Unscoped().Delete(&order)
 // DELETE FROM orders WHERE id=10;
 ```
 
-
-
-
-
-Topics:
-
-Struct-to-table mapping
-
-Field tags (column, type, index, unique)
-
-Embedded structs
-
-Custom table names
-
-JSON vs DB field separation
-
-### Database Operations (CRUD)
-
-Outline:
-
-Creating records
-
-Reading records
-
-Updating records
-
-Deleting records (hard vs soft delete)
-
-Batch operations
-
 ### Querying Techniques
 
-Topics:
+GORM provides a fluent, chainable API for building database queries.
+Queries are composed by chaining methods on a `*gorm.DB` instance
 
-Where, First, Find
+All query methods return a new `*gorm.DB`, allowing you to chain multiple conditions.
 
-Ordering and limiting
+#### Filtering with `Where`
 
-Selecting specific columns
+The `Where` method adds filtering conditions.
 
-Raw SQL with GORM
+Simple condition
+```go
+db.Where("email = ?", "alice@example.com").First(&user)
+```
 
-Pagination patterns
+Multiple conditions
+```go
+db.Where("age >= ? AND active = ?", 18, true).Find(&users)
+```
 
-Scopes
+Struct-based filtering
+```go
+db.Where(&User{Active: true}).Find(&users)
+```
+
+Only non-zero fields in the struct are used as conditions.
+
+#### Ordering Results with Order
+
+Use `Order` to control the sorting of query results.
+
+```go
+db.Order("created_at desc").Find(&users)
+```
+
+Multiple ordering clauses:
+```go
+db.Order("role asc").Order("created_at desc").Find(&users)
+```
+
+#### Limiting and Offsetting Results
+
+Restricts the number of returned records.
+```go
+db.Limit(10).Find(&users)
+```
+
+Skips a number of records (commonly used for pagination).
+
+```go
+db.Offset(20).Limit(10).Find(&users)
+```
+
+Pagination example
+```go
+page := 2
+pageSize := 10
+
+db.Offset((page-1)*pageSize).
+    Limit(pageSize).
+    Order("created_at desc").
+    Find(&users)
+```
+
+#### Selecting Specific Columns
+
+Use `Select` to limit returned columns.
+
+```go
+db.Select("id", "name").Find(&users)
+```
+
+This is useful for:
+- Reducing payload size
+- Optimizing query performance
+
+#### Counting Records
+```go
+var count int64
+db.Model(&User{}).Where("active = ?", true).Count(&count)
+```
+
+Common use cases:
+- Pagination metadata
+- Reporting
+
+#### `IN` Queries
+
+```go
+db.Where("id IN ?", []int{1, 2, 3}).Find(&users)
+```
+
+#### LIKE Queries
+```go
+db.Where("name LIKE ?", "%john%").Find(&users)
+```
+
+#### Combining Conditions
+```go
+db.Where("age > ?", 18).
+    Where("active = ?", true).
+    Order("created_at desc").
+    Find(&users)
+```
+
+Each Where call adds to the existing query.
+
+#### Scopes (Reusable Query Logic)
+
+Scopes allow reusable query fragments.
+
+```go
+func ActiveUsers(db *gorm.DB) *gorm.DB {
+    return db.Where("active = ?", true)
+}
+```
+
+Usage:
+```go
+db.Scopes(ActiveUsers).Find(&users)
+```
+
+Scopes are useful for:
+- Shared filtering logic
+- Clean repository code
+- Consistent query behavior
+
+#### Raw SQL Queries
+
+GORM allows falling back to raw SQL when needed.
+
+```go
+db.Raw("SELECT * FROM users WHERE age > ?", 30).Scan(&users)
+```
+
+This is useful for:
+- Complex joins
+- Database-specific features
+- Performance-critical queries
+
+
+##################################
 
 ### Relationships and Associations
 
-Cover:
+Relational databases model data using relationships between tables.
+GORM provides first-class support for defining and working with these relationships directly through Go structs.
 
-One-to-One
+#### One-to-One Relationship
 
-One-to-Many
+A one-to-one relationship means one record is associated with exactly one other record.
 
-Many-to-Many
+Example: User and Profile
+```go
 
-Foreign keys
+type User struct {
+    ID      uint
+    Name    string
+    Profile Profile
+}
 
-Preloading associations
+type Profile struct {
+    ID     uint
+    UserID uint
+    Bio    string
+}
+```
+UserID acts as the foreign key
 
-Association modes
+GORM infers the relationship automatically
+
+To create records:
+
+```go
+user := User{
+    Name: "Alice",
+    Profile: Profile{
+        Bio: "Software Engineer",
+    },
+}
+db.Create(&user)
+```
+
+
+#### One-to-Many Relationship
+
+A one-to-many relationship means one record can be associated with multiple records.
+
+Example: User and Posts
+```go
+type User struct {
+    ID    uint
+    Name  string
+    Posts []Post
+}
+
+type Post struct {
+    ID     uint
+    Title  string
+    UserID uint
+}
+```
+
+- One User → many Post
+- UserID is the foreign key in Post
+
+#### Query with associations:
+
+```go
+var user User
+db.Preload("Posts").First(&user, 1)
+```
+
+#### Many-to-Many Relationship
+
+A many-to-many relationship requires a join table.
+
+Example: Users and Roles
+```go
+type User struct {
+    ID    uint
+    Name  string
+    Roles []Role `gorm:"many2many:user_roles;"`
+}
+
+type Role struct {
+    ID   uint
+    Name string
+}
+```
+
+GORM automatically manages the join table user_roles.
+
+Create associations:
+
+```go
+
+user := User{
+    Name: "Bob",
+    Roles: []Role{
+        {Name: "Admin"},
+        {Name: "Editor"},
+    },
+}
+
+db.Create(&user)
+```
+
+#### Foreign Keys
+
+Foreign keys define how tables are connected.
+
+By default, GORM:
+
+- Uses <StructName>ID as the foreign key
+- Uses the primary key of the parent table 
+ 
+You can customize foreign keys explicitly:
+
+```go
+type Order struct {
+    ID     uint
+    UserID uint
+    User   User `gorm:"foreignKey:UserID;references:ID"`
+}
+```
+
+This is useful when:
+- Database schema already exists
+- Naming conventions differ
+- Composite keys are used
+
+#### Preloading Associations
+
+By default, GORM does not load associations automatically. Use `Preload` to eagerly load related data.
+
+Single association
+```go
+db.Preload("Profile").First(&user)
+```
+
+Multiple associations
+```go
+db.Preload("Posts").Preload("Roles").Find(&users)
+```
+
+Nested preloading
+```go
+db.Preload("Posts.Comments").Find(&users)
+```
+
+#### Conditional Preloading
+
+You can apply conditions to preloaded associations.
+
+```go
+db.Preload("Posts", "published = ?", true).
+First(&user)
+```
+
+This loads only matching related records.
+
+#### Association Modes
+Association mode allows you to manipulate relationships directly without loading the parent object fully.
+
+Access association handler
+```go
+db.Model(&user).Association("Roles")
+```
+
+Append association
+```go
+db.Model(&user).Association("Roles").Append(&role)
+```
+
+Replace associations
+```go
+db.Model(&user).Association("Roles").Replace(&newRoles)
+```
+
+Delete association
+```go
+db.Model(&user).Association("Roles").Delete(&role)
+```
+
+Clear all associations
+```go
+db.Model(&user).Association("Roles").Clear()
+```
+
+Association mode is useful for:
+- Updating join tables
+- Managing relationships independently
+- Avoiding unnecessary queries
+
+Deleting and Associations
+- By default deleting a parent record does not delete associated records
+
+You can enable cascading behavior:
+```go
+type User struct {
+    ID    uint
+    Posts []Post `gorm:"constraint:OnDelete:CASCADE;"`
+}
+```
+
+Use this carefully to avoid accidental data loss.
 
 ### Migrations and Schema Management
 
-Topics:
+Database schema management is a critical part of application development.
+As applications evolve, tables, columns, indexes, and constraints must be updated in a controlled and predictable way.
 
-Auto migration
+GORM provides built-in tools to help manage schema changes, most notably through auto migration. However, understanding when and how to use these tools is essential to avoid data loss or production issues.
 
-Managing schema changes
+This section covers:
+- Auto migration
+- Managing schema changes
+- Index creation
+- Constraints
+- When auto-migrate is safe and unsafe
 
-Index creation
 
-Constraints
+#### Auto Migration
 
-When auto-migrate is safe / unsafe
+Auto migration allows GORM to automatically create and update database schemas based on model definitions.
+
+Basic Auto Migration
+```go
+db.AutoMigrate(&User{}, &Post{})
+```
+
+Auto migration will:
+- Create tables if they do not exist
+- Add missing columns
+- Add missing indexes
+- Add foreign key constraints (when supported)
+
+Auto migration will NOT:
+- Drop existing tables
+- Remove existing columns
+- Change column types
+- Rename columns
+
+This design minimizes accidental data loss.
+
+#### Managing Schema Changes
+
+As applications evolve, schema changes may include:
+- Adding new fields
+- Changing data types
+- Renaming columns
+- Removing unused columns
+
+Adding a New Column
+```go
+type User struct {
+    ID    uint
+    Name  string
+    Email string
+    Age   int //new field
+}
+```
+
+Running AutoMigrate will automatically add the Age column.
+
+Changing or Removing Columns (Manual Process)
+
+GORM does not automatically:
+- Change column types
+- Remove columns
+- These changes should be handled using:
+- Manual SQL migrations
+- Dedicated migration tools
+- Versioned migration scripts
+
+Example (manual SQL):
+```sql
+ALTER TABLE users ALTER COLUMN age TYPE bigint;
+```
+
+This separation ensures schema changes are intentional and reviewable.
+
+#### Index Creation
+
+Indexes improve query performance and are essential for frequently queried columns.
+
+Creating Indexes with Tags
+
+```go
+type User struct {
+    ID    uint
+    Email string `gorm:"index"`
+}
+```
+
+Unique Index
+```go
+type User struct {
+    Email string `gorm:"uniqueIndex"`
+}
+```
+
+Composite Index
+```go
+type Order struct {
+    UserID uint `gorm:"index:idx_user_status"`
+    Status string `gorm:"index:idx_user_status"`
+}
+```
+
+Indexes are automatically created during auto migration.
+
+#### Constraints
+
+Constraints enforce data integrity at the database level.
+
+Foreign Key Constraints
+```go
+type Post struct {
+    ID     uint
+    UserID uint
+    User   User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+}
+```
+
+Supported actions include:
+- CASCADE
+- SET NULL
+- RESTRICT
+- NO ACTION
+
+Check Constraints
+```go
+type Product struct {
+    Price float64 `gorm:"check:price > 0"`
+}
+```
+
+Check constraints ensure values meet specific conditions.
+
+Not Null Constraint
+```go
+type User struct {
+    Name string `gorm:"not null"`
+}
+```
+
+#### When Auto-Migrate Is Safe
+Auto migration is generally safe and recommended when:
+- You are in early development
+- The schema is evolving rapidly
+- You are adding new tables or columns
+- You control the database entirely
+- The application is internal or non-critical
+
+Typical use cases:
+- Prototyping
+- Internal tools
+- Side projects
+- Early-stage startups
+
+#### When Auto-Migrate Is Unsafe
+Auto migration should be used with caution or avoided when:
+- Running on production databases
+- Schema changes involve data transformation
+- Columns need to be renamed or removed
+- Data types must change
+- Multiple services share the same database
+- Strict audit or compliance requirements exist
+
+In these cases, prefer:
+- Versioned migration tools
+- Explicit SQL scripts
+- Manual review and rollback plans
 
 ### Transactions and Hooks
 
