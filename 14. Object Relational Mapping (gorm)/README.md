@@ -94,7 +94,7 @@ The `db` object is reused across the application and should be initialized once 
 
 ## Features
 
-### Defining Models
+### Models
 Models are defined as Go structs.
 
 ```go
@@ -770,7 +770,6 @@ type User struct {
     Age   int //new field
 }
 ```
-
 Running AutoMigrate will automatically add the Age column.
 
 Changing or Removing Columns (Manual Process)
@@ -857,7 +856,7 @@ type User struct {
 
 #### When Auto-Migrate Is Safe
 Auto migration is generally safe and recommended when:
-- You are in early development
+- In early development
 - The schema is evolving rapidly
 - You are adding new tables or columns
 - You control the database entirely
@@ -876,7 +875,6 @@ Auto migration should be used with caution or avoided when:
 - Columns need to be renamed or removed
 - Data types must change
 - Multiple services share the same database
-- Strict audit or compliance requirements exist
 
 In these cases, prefer:
 - Versioned migration tools
@@ -885,12 +883,128 @@ In these cases, prefer:
 
 ### Transactions and Hooks
 
-Outline:
+Modern applications often require multiple database operations to succeed or fail as a single unit.
+GORM provides first-class support for database transactions and model lifecycle hooks to help enforce consistency, integrity, and business rules.
 
-Database transactions
+#### Transactions
+A transaction groups multiple operations into a single, atomic unit. It guarantees
+- Atomicity – all operations succeed or none do
+- Consistency – database remains in a valid state
+- Isolation – intermediate states are not visible
+- Durability – committed changes persist
 
-Commit / rollback patterns
+GORM provides a high-level Transaction helper.
 
-Model hooks (BeforeCreate, AfterUpdate, etc.)
+```go
+err := db.Transaction(func(tx *gorm.DB) error {
+    if err := tx.Create(&order).Error; err != nil {
+        return err
+    }
 
-Use cases and pitfalls
+    if err := tx.Create(&payment).Error; err != nil {
+        return err
+    }
+
+    return nil // commit
+})
+```
+
+- Returning nil → commit
+- Returning an error → rollback
+
+For some scenarios, transactions can be managed manually.
+```go
+tx := db.Begin()
+
+if err := tx.Create(&user).Error; err != nil {
+    tx.Rollback()
+    return err
+}
+
+if err := tx.Create(&profile).Error; err != nil {
+    tx.Rollback()
+    return err
+}
+
+return tx.Commit().Error
+```
+
+GORM supports nested transactions, you can rollback a subset of operations performed within the scope of a larger transaction
+```go
+db.Transaction(func(tx *gorm.DB) error {
+  tx.Create(&user1)
+  tx.Transaction(func(tx2 *gorm.DB) error {
+    tx2.Create(&user2)
+    return errors.New("rollback user2") // Rollback user2
+  })
+  tx.Transaction(func(tx3 *gorm.DB) error {
+    tx3.Create(&user3)
+    return nil
+  })
+  return nil
+})
+// Commit user1, user3
+```
+GORM provides `SavePoint`, `RollbackTo` to save points and roll back to a savepoint, for example:
+
+```go
+tx := db.Begin()
+tx.Create(&user1)
+
+tx.SavePoint("sp1")
+tx.Create(&user2)
+tx.RollbackTo("sp1") // Rollback user2
+
+tx.Commit() // Commit user1
+```
+
+#### Hooks
+Hooks allow logic to run automatically at specific lifecycle stages.
+
+Common hooks
+- BeforeCreate
+- AfterCreate
+- BeforeUpdate
+- AfterUpdate
+- BeforeSave
+- AfterSave
+- BeforeDelete
+- AfterDelete
+- AfterFind
+
+**Example**
+```go
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+    u.Email = strings.ToLower(u.Email)
+    return nil
+}
+```
+- Runs automatically before inserting a record
+- Can modify data
+- Return an error to stop the operation
+
+**Example**
+```go
+func (o *Order) AfterUpdate(tx *gorm.DB) error {
+    log.Println("Order updated:", o.ID)
+    return nil
+}
+```
+Hooks run inside the transaction when applicable.
+
+#### Common Use Cases
+
+Transactions are commonly used for
+- Multi-table writes
+- Data migrations
+- Audit logging
+
+Hooks are commonly used for
+- Data normalization
+- Automatic timestamps
+- Audit trails
+- Validation logic
+
+For more references and examples
+- [GORM Hooks](https://gorm.io/docs/hooks.html)
+- [GORM Transaction](https://gorm.io/docs/transactions.html)
