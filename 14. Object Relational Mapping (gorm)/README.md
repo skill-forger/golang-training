@@ -1008,3 +1008,16 @@ Hooks are commonly used for
 For more references and examples
 - [GORM Hooks](https://gorm.io/docs/hooks.html)
 - [GORM Transaction](https://gorm.io/docs/transactions.html)
+
+### Recommended Resources for ORM
+
+1. **Official Documentation & Tutorials**
+    - [GORM Documentation](https://gorm.io/docs/)
+    - [SQL Performance Best Practices](https://use-the-index-luke.com/)
+
+2. **Books & Courses**
+    - "SQL Performance Explained" by Markus Winand.
+    - "GORM for Go Developers" Udemy course.
+
+3. **Open Source Examples**
+    - [RealWorld Example App with GORM](https://github.com/gothinkster/golang-gin-realworld-example-app)

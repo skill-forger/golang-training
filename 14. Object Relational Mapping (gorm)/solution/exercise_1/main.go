@@ -7,203 +7,176 @@ import (
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-// Product model
-type Product struct {
-	ID          uint    `gorm:"primaryKey"`
-	Name        string  `gorm:"size:100;not null"`
-	Description string  `gorm:"type:text"`
-	Price       float64 `gorm:"type:decimal(10,2);not null"`
-	Stock       int     `gorm:"default:0"`
-	Category    string  `gorm:"size:50;index"`
-	IsActive    bool    `gorm:"default:true"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+// Initial version of the User model
+type UserV1 struct {
+	ID        uint   `gorm:"primaryKey"`
+	Name      string `gorm:"size:100;not null"`
+	Email     string `gorm:"size:100;uniqueIndex;not null"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
-// ProductService handles database operations for products
-type ProductService struct {
+// Second version adds Age field
+type UserV2 struct {
+	ID        uint   `gorm:"primaryKey"`
+	Name      string `gorm:"size:100;not null"`
+	Email     string `gorm:"size:100;uniqueIndex;not null"`
+	Age       int    `gorm:"default:0"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// Third version adds IsActive field and change Age to nullable
+type UserV3 struct {
+	ID        uint   `gorm:"primaryKey"`
+	Name      string `gorm:"size:100;not null"`
+	Email     string `gorm:"size:100;uniqueIndex;not null"`
+	Age       *int   `gorm:"default:null"` // Changed to pointer to make nullable
+	IsActive  bool   `gorm:"default:true"` // New field
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time `gorm:"index"` // Add soft delete
+}
+
+// MigrationManager handles database migrations
+type MigrationManager struct {
 	db *gorm.DB
 }
 
-// NewProductService creates a new product service with the provided database connection
-func NewProductService(db *gorm.DB) *ProductService {
-	return &ProductService{db: db}
-}
-
-// Create adds a new product to the database
-func (s *ProductService) Create(product *Product) error {
-	return s.db.Create(product).Error
-}
-
-// FindByID retrieves a product by its ID
-func (s *ProductService) FindByID(id uint) (*Product, error) {
-	var product Product
-	err := s.db.First(&product, id).Error
+// NewMigrationManager creates a new migration manager
+func NewMigrationManager() (*MigrationManager, error) {
+	db, err := gorm.Open(sqlite.Open("migration_demo.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
-	return &product, nil
+
+	return &MigrationManager{db: db}, nil
 }
 
-// FindAll retrieves all products
-func (s *ProductService) FindAll() ([]Product, error) {
-	var products []Product
-	err := s.db.Find(&products).Error
-	return products, err
-}
+// RunMigrations demonstrates migration steps
+func (m *MigrationManager) RunMigrations() {
+	// Step 1: Initial schema
+	fmt.Println("Step 1: Creating initial schema (UserV1)")
+	if err := m.db.AutoMigrate(&UserV1{}); err != nil {
+		log.Fatalf("Failed to migrate to UserV1: %v", err)
+	}
 
-// FindByCategory retrieves products by category
-func (s *ProductService) FindByCategory(category string) ([]Product, error) {
-	var products []Product
-	err := s.db.Where("category = ?", category).Find(&products).Error
-	return products, err
-}
+	// Add some initial users
+	initialUsers := []UserV1{
+		{Name: "Alice", Email: "alice@example.com"},
+		{Name: "Bob", Email: "bob@example.com"},
+	}
 
-// Update modifies an existing product
-func (s *ProductService) Update(product *Product) error {
-	return s.db.Save(product).Error
-}
+	for _, user := range initialUsers {
+		if err := m.db.Create(&user).Error; err != nil {
+			log.Printf("Failed to create user: %v", err)
+		}
+	}
 
-// Delete removes a product by ID
-func (s *ProductService) Delete(id uint) error {
-	return s.db.Delete(&Product{}, id).Error
-}
+	// Display users after initial migration
+	var usersV1 []UserV1
+	m.db.Find(&usersV1)
+	fmt.Println("Users after initial migration:")
+	for _, u := range usersV1 {
+		fmt.Printf("ID: %d, Name: %s, Email: %s\n", u.ID, u.Name, u.Email)
+	}
+	fmt.Println()
 
-// SearchProducts searches for products by name or description
-func (s *ProductService) SearchProducts(query string) ([]Product, error) {
-	var products []Product
-	err := s.db.Where("name LIKE ? OR description LIKE ?", "%"+query+"%", "%"+query+"%").Find(&products).Error
-	return products, err
+	// Step 2: Migrate to the second version (add Age field)
+	fmt.Println("Step 2: Migrating to UserV2 (adding Age field)")
+	if err := m.db.AutoMigrate(&UserV2{}); err != nil {
+		log.Fatalf("Failed to migrate to UserV2: %v", err)
+	}
+
+	// Update existing users with age
+	m.db.Exec("UPDATE users SET age = ? WHERE name = ?", 30, "Alice")
+	m.db.Exec("UPDATE users SET age = ? WHERE name = ?", 25, "Bob")
+
+	// Add a new user with the age field
+	newUserV2 := UserV2{
+		Name:  "Charlie",
+		Email: "charlie@example.com",
+		Age:   35,
+	}
+	m.db.Create(&newUserV2)
+
+	// Display users after second migration
+	var usersV2 []UserV2
+	m.db.Find(&usersV2)
+	fmt.Println("Users after adding Age field:")
+	for _, u := range usersV2 {
+		fmt.Printf("ID: %d, Name: %s, Email: %s, Age: %d\n", u.ID, u.Name, u.Email, u.Age)
+	}
+	fmt.Println()
+
+	// Step 3: Migrate to the third version (make Age nullable and add IsActive)
+	fmt.Println("Step 3: Migrating to UserV3 (nullable Age, add IsActive, add soft delete)")
+	if err := m.db.AutoMigrate(&UserV3{}); err != nil {
+		log.Fatalf("Failed to migrate to UserV3: %v", err)
+	}
+
+	// Set IsActive for existing users
+	m.db.Exec("UPDATE users SET is_active = ? WHERE name IN (?, ?)", true, "Alice", "Bob")
+	m.db.Exec("UPDATE users SET is_active = ? WHERE name = ?", false, "Charlie")
+
+	// Remove age for one user to demonstrate NULL value
+	m.db.Exec("UPDATE users SET age = NULL WHERE name = ?", "Bob")
+
+	// Add a new user with the full schema
+	age := 40
+	newUserV3 := UserV3{
+		Name:     "Dave",
+		Email:    "dave@example.com",
+		Age:      &age,
+		IsActive: true,
+	}
+	m.db.Create(&newUserV3)
+
+	// Display users after third migration
+	var usersV3 []UserV3
+	m.db.Find(&usersV3)
+	fmt.Println("Users after final migration:")
+	for _, u := range usersV3 {
+		ageStr := "NULL"
+		if u.Age != nil {
+			ageStr = fmt.Sprintf("%d", *u.Age)
+		}
+		fmt.Printf("ID: %d, Name: %s, Email: %s, Age: %s, IsActive: %v\n",
+			u.ID, u.Name, u.Email, ageStr, u.IsActive)
+	}
+	fmt.Println()
+
+	// Demonstrate soft delete
+	fmt.Println("Soft deleting user 'Charlie'")
+	m.db.Where("name = ?", "Charlie").Delete(&UserV3{})
+
+	// Show all users including soft deleted
+	var allUsers []UserV3
+	m.db.Unscoped().Find(&allUsers)
+	fmt.Println("All users (including soft deleted):")
+	for _, u := range allUsers {
+		ageStr := "NULL"
+		if u.Age != nil {
+			ageStr = fmt.Sprintf("%d", *u.Age)
+		}
+		deletedStr := "Active"
+		if u.DeletedAt != nil {
+			deletedStr = "Deleted"
+		}
+		fmt.Printf("ID: %d, Name: %s, Email: %s, Age: %s, Status: %s\n",
+			u.ID, u.Name, u.Email, ageStr, deletedStr)
+	}
 }
 
 func main() {
-	// Set up the logger for GORM
-	newLogger := logger.New(
-		log.New(log.Writer(), "\r\n", log.LstdFlags),
-		logger.Config{
-			SlowThreshold:             200 * time.Millisecond,
-			LogLevel:                  logger.Info,
-			IgnoreRecordNotFoundError: false,
-			Colorful:                  true,
-		},
-	)
-
-	// Connect to a SQLite database
-	db, err := gorm.Open(sqlite.Open("products.db"), &gorm.Config{
-		Logger: newLogger,
-	})
+	// Initialize migration manager
+	mgr, err := NewMigrationManager()
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to initialize migration manager: %v", err)
 	}
 
-	// Auto Migrate the schema
-	err = db.AutoMigrate(&Product{})
-	if err != nil {
-		log.Fatalf("Failed to migrate database: %v", err)
-	}
-
-	// Create a product service
-	productService := NewProductService(db)
-
-	// Create products
-	products := []Product{
-		{
-			Name:        "Laptop",
-			Description: "High-performance laptop with 16GB RAM",
-			Price:       1299.99,
-			Stock:       10,
-			Category:    "Electronics",
-			IsActive:    true,
-		},
-		{
-			Name:        "Smartphone",
-			Description: "Latest smartphone with advanced camera",
-			Price:       799.99,
-			Stock:       15,
-			Category:    "Electronics",
-		},
-		{
-			Name:        "Coffee Maker",
-			Description: "Automatic coffee maker with timer",
-			Price:       89.99,
-			Stock:       5,
-			Category:    "Home Appliances",
-		},
-	}
-
-	// Demonstrate CRUD operations
-	fmt.Println("--- Create Products ---")
-	for _, product := range products {
-		if err := productService.Create(&product); err != nil {
-			log.Printf("Failed to create product: %v", err)
-		} else {
-			fmt.Printf("Product created: %s (ID: %d)\n", product.Name, product.ID)
-		}
-	}
-
-	fmt.Println("\n--- Find All Products ---")
-	allProducts, err := productService.FindAll()
-	if err != nil {
-		log.Printf("Failed to retrieve products: %v", err)
-	} else {
-		for _, p := range allProducts {
-			fmt.Printf("ID: %d, Name: %s, Price: $%.2f, Category: %s\n",
-				p.ID, p.Name, p.Price, p.Category)
-		}
-	}
-
-	fmt.Println("\n--- Find Products by Category ---")
-	electronicsProducts, err := productService.FindByCategory("Electronics")
-	if err != nil {
-		log.Printf("Failed to retrieve electronics products: %v", err)
-	} else {
-		fmt.Printf("Found %d products in Electronics category:\n", len(electronicsProducts))
-		for _, p := range electronicsProducts {
-			fmt.Printf("ID: %d, Name: %s, Price: $%.2f\n", p.ID, p.Name, p.Price)
-		}
-	}
-
-	fmt.Println("\n--- Update Product ---")
-	if len(allProducts) > 0 {
-		productToUpdate := allProducts[0]
-		// Increase price by 10%
-		productToUpdate.Price = productToUpdate.Price * 1.1
-		if err := productService.Update(&productToUpdate); err != nil {
-			log.Printf("Failed to update product: %v", err)
-		} else {
-			fmt.Printf("Product updated: %s (New price: $%.2f)\n",
-				productToUpdate.Name, productToUpdate.Price)
-		}
-	}
-
-	fmt.Println("\n--- Search Products ---")
-	searchResults, err := productService.SearchProducts("coffee")
-	if err != nil {
-		log.Printf("Search failed: %v", err)
-	} else {
-		fmt.Printf("Found %d products matching 'coffee':\n", len(searchResults))
-		for _, p := range searchResults {
-			fmt.Printf("ID: %d, Name: %s, Description: %s\n",
-				p.ID, p.Name, p.Description)
-		}
-	}
-
-	fmt.Println("\n--- Delete Product ---")
-	if len(allProducts) > 0 {
-		idToDelete := allProducts[len(allProducts)-1].ID
-		if err := productService.Delete(idToDelete); err != nil {
-			log.Printf("Failed to delete product: %v", err)
-		} else {
-			fmt.Printf("Product with ID %d deleted\n", idToDelete)
-		}
-	}
-
-	fmt.Println("\n--- Final Product List ---")
-	finalProducts, _ := productService.FindAll()
-	for _, p := range finalProducts {
-		fmt.Printf("ID: %d, Name: %s, Price: $%.2f\n", p.ID, p.Name, p.Price)
-	}
+	// Run migrations
+	mgr.RunMigrations()
 }
