@@ -1,5 +1,4 @@
-# Module 15: Authentication with JWT in Go
-
+# Module 15: Authentication with JWT
 
 ## Table of Contents
 
@@ -78,11 +77,11 @@ JWT (JSON Web Token) is a compact, URL-safe token format used to represent claim
 
 ### JWT vs traditional sessions
 
-| Sessions          | JWT           |
-|-------------------|---------------|
-| Server-side state | Stateless     |
-| Cookie-based      | Header-based  |
-| Harder to scale   | Easy to scale |
+| Sessions        | JWT           |
+|-----------------|---------------|
+| Stateful        | Stateless     |
+| Cookie-based    | Header-based  |
+| Harder to scale | Easy to scale |
 
 ---
 
@@ -224,11 +223,87 @@ func ParseToken(tokenStr string, secret []byte) (*jwt.Token, error) {
 - Return token in response
 
 ```go
-func LoginHandler(c echo.Context) error {
-	token, _ := GenerateToken("123", []byte("secret"))
-	return c.JSON(http.StatusOK, map[string]string{
-		"access_token": token,
-	})
+package main
+
+import (
+  "net/http"
+  "time"
+
+  "github.com/gin-gonic/gin"
+  "github.com/golang-jwt/jwt/v5"
+)
+
+// Secret key for signing tokens
+var jwtKey = []byte("your_secret_key")
+
+// User model for demonstration
+type User struct {
+  ID       string `json:"id"`
+  Username string `json:"username"`
+  Password string `json:"password"` // In production, store hashed passwords only
+  Role     string `json:"role"`
+}
+
+// Mock user database
+var users = map[string]User{
+  "johndoe": {
+    ID:       "1",
+    Username: "johndoe",
+    Password: "password123", // Never store plain passwords in real apps
+    Role:     "user",
+  },
+  "admin": {
+    ID:       "2",
+    Username: "admin",
+    Password: "admin123",
+    Role:     "admin",
+  },
+}
+
+type Credentials struct {
+  Username string `json:"username" binding:"required"`
+  Password string `json:"password" binding:"required"`
+}
+
+func GenerateToken(userID string, secret []byte) (string, error) {
+  claims := jwt.MapClaims{
+    "sub": userID,
+    "exp": time.Now().Add(15 * time.Minute).Unix(),
+    "iat": time.Now().Unix(),
+  }
+
+  token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+  return token.SignedString(secret)
+}
+
+func Login(c *gin.Context) {
+  var creds Credentials
+
+  // Bind JSON request to credentials struct
+  if err := c.ShouldBindJSON(&creds); err != nil {
+    c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+    return
+  }
+
+  // DEMO PURPOSE ONLY:
+  // In this example, users are stored in an in-memory map and passwords
+  // are compared directly for simplicity.
+  //
+  // In a real application:
+  // - Users would be queried from a database
+  // - Passwords would be stored as hashes (bcrypt/argon2)
+  // - Password comparison would use a secure hash comparison
+  // - No plaintext passwords would ever be stored in memory
+  user, exists := users[creds.Username]
+  if !exists || user.Password != creds.Password {
+    c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+    return
+  }
+
+  token, _ := GenerateToken("123", jwtKey)
+  c.JSON(http.StatusOK, gin.H{
+    "access_token": token,
+  })
 }
 ```
 
@@ -238,8 +313,59 @@ Token Verification Middleware
 - Attach identity to request context
 - Extracting tokens from HTTP headers
 
-```
-Authorization: Bearer <token>
+```go
+var jwtKey = []byte("your_secret_key")
+func JWTMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		// 1. Read Authorization header
+		auth := c.GetHeader("Authorization")
+		if !strings.HasPrefix(auth, "Bearer ") {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		// 2. Extract token
+		tokenStr := strings.TrimPrefix(auth, "Bearer ")
+
+		// 3. Parse and validate token
+		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+			return jwtKey, nil
+		})
+		if err != nil || !token.Valid {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		// 4. Extract user identity
+		claims := token.Claims.(jwt.MapClaims)
+		userID := claims["sub"].(string)
+
+		// 5. Attach identity to Gin context
+		c.Set("userID", userID)
+
+		// Continue to handler
+		c.Next()
+	}
+}
+
+func ProtectedHandler(c *gin.Context) {
+    userID := c.GetString("userID")
+
+    c.JSON(http.StatusOK, gin.H{
+        "message": "Hello user " + userID,
+    })
+}
+
+
+func main(){
+  r := gin.Default()
+  protected := r.Group("/api")
+  protected.Use(JWTMiddleware()) // Apply middleware to group
+  {
+    protected.GET("/protected", ProtectedHandler)
+  }
+}
 ```
 
 ## JWT Integration with Gin and Echo
@@ -323,7 +449,7 @@ e.Use(echojwt.WithConfig(echojwt.Config{
 
 Protecting routes using middleware
 ```go
-r.GET("/protected", handler, JWTMiddleware(secret))
+r.GET("/protected", JWTMiddleware(secret), handler)
 ```
 
 ## Advanced JWT Techniques
