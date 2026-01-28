@@ -453,33 +453,579 @@ r.GET("/protected", JWTMiddleware(secret), handler)
 ```
 
 ## Advanced JWT Techniques
-### Refresh token concepts
-- Access tokens expire quickly
-- Refresh tokens allow renewal without re-login
+### Token renewal flow using refresh token
+Access tokens expire quickly (e.g., 5–15 minutes) while refresh tokens allow renewal without re-login (e.g., 7–30 days)
 
-### Token renewal flow
 - Client sends refresh token
 - Server validates refresh token
 - New access token is issued
 
-## Token Revocation and Logout
-JWT is stateless, so logout requires additional strategies.
+![rf_token_flow.png](images/rf_token_flow.png)
 
-### Token blacklisting concepts
-- Store revoked token IDs
-- Check blacklist on each request
+```go
+package main
 
-### Stateful revocation approaches
-- Session table
-- jti (JWT ID)
-- Per-device sessions
+import (
+  "errors"
+  "net/http"
+  "strings"
+  "time"
 
-## Using Different Signing Methods
-### Symmetric signing (HS256)
-- Same secret for signing and verification
-- Simple but harder to rotate keys
+  "github.com/gin-gonic/gin"
+  "github.com/golang-jwt/jwt/v5"
+  "github.com/google/uuid"
+)
 
-### Asymmetric signing (RS256)
-- Private key signs tokens
-- Public key verifies tokens
-- Better for distributed systems
+var secret = []byte("super-secret")
+
+// --- In-memory refresh session store ---
+// refreshJTI -> active
+var refreshSessions = map[string]bool{}
+
+func newAccessToken(userID string) (string, error) {
+  claims := jwt.MapClaims{
+    "sub": userID,
+    "typ": "access",
+    "exp": time.Now().Add(5 * time.Minute).Unix(),
+    "iat": time.Now().Unix(),
+  }
+  return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
+}
+
+func newRefreshToken(userID, jti string) (string, error) {
+  claims := jwt.MapClaims{
+    "sub": userID,
+    "typ": "refresh",
+    "jti": jti,
+    "exp": time.Now().Add(7 * 24 * time.Hour).Unix(),
+    "iat": time.Now().Unix(),
+  }
+  return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
+}
+
+func parseToken(tokenStr string) (jwt.MapClaims, error) {
+  t, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+    return secret, nil
+  })
+  if err != nil || !t.Valid {
+    return nil, errors.New("invalid token")
+  }
+  claims, ok := t.Claims.(jwt.MapClaims)
+  if !ok {
+    return nil, errors.New("invalid claims")
+  }
+  return claims, nil
+}
+
+func RefreshHandler(c *gin.Context) {
+  var req struct {
+    RefreshToken string `json:"refresh_token"`
+  }
+  if err := c.ShouldBindJSON(&req); err != nil || req.RefreshToken == "" {
+    c.JSON(http.StatusBadRequest, gin.H{"error": "refresh_token required"})
+    return
+  }
+
+  claims, err := parseToken(req.RefreshToken)
+  if err != nil {
+    c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
+    return
+  }
+
+  // Check token type refresh token
+  if claims["typ"] != "refresh" {
+    c.JSON(http.StatusUnauthorized, gin.H{"error": "not a refresh token"})
+    return
+  }
+
+  userID, _ := claims["sub"].(string)
+  jti, _ := claims["jti"].(string)
+  if userID == "" || jti == "" {
+    c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh claims"})
+    return
+  }
+
+  // Check server-side session state
+  if !refreshSessions[jti] {
+    c.JSON(http.StatusUnauthorized, gin.H{"error": "refresh token revoked"})
+    return
+  }
+
+  // Revoke old refresh token, issue new tokens
+  refreshSessions[jti] = false
+  newJTI := uuid.New()
+  refreshSessions[newJTI] = true
+
+  //New access token
+  accessToken, err := newAccessToken(userID)
+  if err != nil {
+    c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to issue access token"})
+    return
+  }
+
+  //New refresh token
+  refreshToken, err := newRefreshToken(userID, newJTI)
+  if err != nil {
+    c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to issue refresh token"})
+    return
+  }
+
+  c.JSON(http.StatusOK, gin.H{
+    "access_token":  accessToken,
+    "refresh_token": refreshToken,
+  })
+}
+```
+
+### Token Revocation and Logout
+JWT access tokens are stateless, so logout usually targets refresh tokens (session layer)
+
+#### Token blacklisting
+A blacklist approach stores revoked token IDs and checks them on each request.
+**Note**: This requires the access token to include a `jti` claim.
+- The blacklist should store a TTL (e.g., until token exp) and be concurrency-safe.
+- In-memory blacklist only works per instance (in real apps, use Redis).
+
+**Flow**:
+- On each request: validate JWT → extract jti → reject if blacklisted.
+- On logout: blacklist the current access token jti until it expires.
+
+```go
+// For demo will use in app memory
+package main
+
+import (
+  "net/http"
+  "strings"
+  "sync"
+  "time"
+
+  "github.com/gin-gonic/gin"
+)
+var secret = []byte("your-secret-key")
+
+// Store jti -> expUnix (TTL by exp)
+var (
+  accessBlacklistMu sync.RWMutex
+  accessBlacklist   = map[string]int64{} // jti => expUnix
+)
+
+// isBlacklisted returns true if jti exists and not expired.
+// Also removes expired entries.
+func isBlacklisted(jti string) bool {
+  if jti == "" {
+    return false
+  }
+
+  now := time.Now().Unix()
+
+  accessBlacklistMu.RLock()
+  expUnix, ok := accessBlacklist[jti]
+  accessBlacklistMu.RUnlock()
+
+  if !ok {
+    return false
+  }
+
+  // Expired blacklist entry => cleanup
+  if expUnix <= now {
+    accessBlacklistMu.Lock()
+    // re-check then delete
+    if exp2, ok2 := accessBlacklist[jti]; ok2 && exp2 <= now {
+      delete(accessBlacklist, jti)
+    }
+    accessBlacklistMu.Unlock()
+    return false
+  }
+
+  return true
+}
+
+func blacklistAccessJTI(jti string, expUnix int64) {
+  if jti == "" || expUnix == 0 {
+    return
+  }
+  accessBlacklistMu.Lock()
+  accessBlacklist[jti] = expUnix
+  accessBlacklistMu.Unlock()
+}
+
+func parseToken(tokenStr string) (jwt.MapClaims, error) {
+  t, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+    // IMPORTANT: enforce expected algorithm
+    if t.Method != jwt.SigningMethodHS256 {
+      return nil, errors.New("unexpected signing method")
+    }
+    return secret, nil
+  })
+  if err != nil || !t.Valid {
+    return nil, errors.New("invalid token")
+  }
+
+  claims, ok := t.Claims.(jwt.MapClaims)
+  if !ok {
+    return nil, errors.New("invalid claims")
+  }
+  return claims, nil
+}
+
+func JWTMiddlewareWithBlacklist() gin.HandlerFunc {
+  return func(c *gin.Context) {
+    auth := c.GetHeader("Authorization")
+    if !strings.HasPrefix(auth, "Bearer ") {
+      c.AbortWithStatus(http.StatusUnauthorized)
+      return
+    }
+
+    tokenStr := strings.TrimPrefix(auth, "Bearer ")
+    claims, err := parseToken(tokenStr)
+    if err != nil {
+      c.AbortWithStatus(http.StatusUnauthorized)
+      return
+    }
+
+    if claims["typ"] != "access" {
+      c.AbortWithStatus(http.StatusUnauthorized)
+      return
+    }
+
+    jti, _ := claims["jti"].(string)
+    if isBlacklisted(jti) {
+      c.AbortWithStatus(http.StatusUnauthorized)
+      return
+    }
+
+    userID, _ := claims["sub"].(string)
+    if userID == "" {
+      c.AbortWithStatus(http.StatusUnauthorized)
+      return
+    }
+    c.Set("userID", userID)
+    c.Next()
+  }
+}
+
+// LogoutBlacklistAccessToken blacklists current access token
+func LogoutBlacklistAccessToken(c *gin.Context) {
+  auth := c.GetHeader("Authorization")
+  if !strings.HasPrefix(auth, "Bearer ") {
+    c.JSON(http.StatusBadRequest, gin.H{"error": "missing access token"})
+    return
+  }
+
+  tokenStr := strings.TrimPrefix(auth, "Bearer ")
+  claims, err := parseToken(tokenStr)
+  if err != nil {
+    c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid access token"})
+    return
+  }
+
+  if claims["typ"] != "access" {
+    c.JSON(http.StatusBadRequest, gin.H{"error": "invalid access token"})
+    return
+  }
+
+  jti, _ := claims["jti"].(string)
+  if jti == "" {
+    c.JSON(http.StatusBadRequest, gin.H{"error": "access token missing jti"})
+    return
+  }
+
+  expFloat, _ := claims["exp"].(float64) // jwt.MapClaims decodes numbers as float64
+  expUnix := int64(expFloat)
+  if expUnix <= time.Now().Unix() {
+    // already expired, nothing to blacklist
+    c.Status(http.StatusNoContent)
+    return
+  }
+
+  blacklistAccessJTI(jti, expUnix)
+  c.Status(http.StatusNoContent)
+}
+
+```
+
+#### Stateful revocation
+Refresh tokens should be stateful via a session store (DB/Redis). Each refresh token contains a `jti` (session id).
+**Flow:**
+- Login creates a refresh session and issues token pair.
+- Refresh validates refresh token, checks session active, then rotates:
+  - revoke old session
+  - create new session (new jti)
+  - issue new token pair
+- Logout revokes a specific refresh session.
+
+**Notes:**
+- If you only revoke refresh/session, access token remains valid until expired
+- For instant logout, revoke refresh/session and blacklist the current access token jti.
+
+```go
+package main
+
+import (
+  "errors"
+  "net/http"
+  "sync"
+  "time"
+
+  "github.com/gin-gonic/gin"
+  "github.com/golang-jwt/jwt/v5"
+  "github.com/google/uuid"
+)
+
+var secret = []byte("your-secret-key")
+
+// DEMO purpose: in-memory session table
+// In real apps: store in Postgres/Redis
+var (
+  sessionMu    sync.RWMutex
+  sessionTable = map[string]RefreshSession{} // refresh_jti => session
+)
+
+type RefreshSession struct {
+  JTI       string
+  UserID    string
+  RevokedAt *time.Time
+  ExpiresAt time.Time
+}
+
+func isActive(session RefreshSession) bool {
+  if session.RevokedAt != nil {
+    return false
+  }
+  if time.Now().After(session.ExpiresAt) {
+    return false
+  }
+  return true
+}
+
+func issueAccessToken(userID string) (string, error) {
+  accessJTI := uuid.NewString()
+  claims := jwt.MapClaims{
+    "sub": userID,
+    "typ": "access",
+    "jti": accessJTI,
+    "exp": time.Now().Add(5 * time.Minute).Unix(),
+    "iat": time.Now().Unix(),
+  }
+  return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
+}
+
+func issueRefreshToken(userID string, jti string) (string, error) {
+  claims := jwt.MapClaims{
+    "sub": userID,
+    "typ": "refresh",
+    "jti": jti,
+    "exp": time.Now().Add(7 * 24 * time.Hour).Unix(),
+    "iat": time.Now().Unix(),
+  }
+  return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
+}
+
+func parseToken(tokenStr string) (jwt.MapClaims, error) {
+  t, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+    if t.Method != jwt.SigningMethodHS256 {
+      return nil, errors.New("unexpected signing method")
+    }
+    return secret, nil
+  })
+  if err != nil || !t.Valid {
+    return nil, errors.New("invalid token")
+  }
+
+  claims, ok := t.Claims.(jwt.MapClaims)
+  if !ok {
+    return nil, errors.New("invalid claims")
+  }
+  return claims, nil
+}
+
+// Create refresh session (stateful) and return token pair.
+func login(userID string) (string, string, error) {
+  accessToken, err := issueAccessToken(userID)
+  if err != nil {
+    return "", "", err
+  }
+
+  refreshJTI := uuid.NewString()
+  expiresAt := time.Now().Add(7 * 24 * time.Hour)
+
+  sessionMu.Lock()
+  sessionTable[refreshJTI] = RefreshSession{
+    JTI:       refreshJTI,
+    UserID:    userID,
+    RevokedAt: nil,
+    ExpiresAt: expiresAt,
+  }
+  sessionMu.Unlock()
+
+  refreshToken, err := issueRefreshToken(userID, refreshJTI)
+  if err != nil {
+    return "", "", err
+  }
+  return accessToken, refreshToken, nil
+}
+
+// Refresh token flow
+// - validate refresh token
+// - check sessionTable[jti] active AND belongs to same user
+// - revoke old session
+// - create new session with new jti
+// - return new token pair
+func refresh(oldRefreshToken string) (string, string, error) {
+  claims, err := parseToken(oldRefreshToken)
+  if err != nil {
+    return "", "", err
+  }
+
+  if claims["typ"] != "refresh" {
+    return "", "", errors.New("invalid refresh token")
+  }
+
+  userID, _ := claims["sub"].(string)
+  jti, _ := claims["jti"].(string)
+  if userID == "" || jti == "" {
+    return "", "", errors.New("missing refresh claims")
+  }
+
+  sessionMu.RLock()
+  sess, ok := sessionTable[jti]
+  sessionMu.RUnlock()
+
+  if !ok || !isActive(sess) {
+    return "", "", errors.New("refresh session revoked/expired")
+  }
+
+  // ensure session belongs to this user
+  if sess.UserID != userID {
+    return "", "", errors.New("refresh session mismatch")
+  }
+
+  // revoke old session
+  now := time.Now()
+  sessionMu.Lock()
+  oldSession := sessionTable[jti]
+  // re-check in case changed
+  if !isActive(oldSession) {
+    sessionMu.Unlock()
+    return "", "", errors.New("refresh session revoked/expired")
+  }
+  oldSession.RevokedAt = &now
+  sessionTable[jti] = oldSession
+
+  // create new session
+  newJTI := uuid.NewString()
+  sessionTable[newJTI] = RefreshSession{
+    JTI:       newJTI,
+    UserID:    userID,
+    RevokedAt: nil,
+    ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+  }
+  sessionMu.Unlock()
+
+  newAccessToken, err := issueAccessToken(userID)
+  if err != nil {
+    return "", "", err
+  }
+  newRefreshToken, err := issueRefreshToken(userID, newJTI)
+  if err != nil {
+    return "", "", err
+  }
+  return newAccessToken, newRefreshToken, nil
+}
+
+// logout revoke a specific refresh session
+func logout(refreshToken string) error {
+  claims, err := parseToken(refreshToken)
+  if err != nil {
+    return err
+  }
+  if claims["typ"] != "refresh" {
+    return errors.New("invalid refresh token")
+  }
+  jti, _ := claims["jti"].(string)
+  if jti == "" {
+    return errors.New("missing token jti")
+  }
+
+  sessionMu.Lock()
+  defer sessionMu.Unlock()
+
+  sess, ok := sessionTable[jti]
+  if !ok {
+    return nil
+  }
+  now := time.Now()
+  sess.RevokedAt = &now
+  sessionTable[jti] = sess
+  return nil
+}
+
+func LoginHandler(c *gin.Context) {
+  var req struct {
+    UserID string `json:"user_id"`
+  }
+  if err := c.ShouldBindJSON(&req); err != nil || req.UserID == "" {
+    c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+    return
+  }
+
+  accessToken, refreshToken, err := login(req.UserID)
+  if err != nil {
+    c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+    return
+  }
+
+  c.JSON(http.StatusOK, gin.H{
+    "access_token":  accessToken,
+    "refresh_token": refreshToken,
+  })
+}
+
+func RefreshHandler(c *gin.Context) {
+  var req struct {
+    RefreshToken string `json:"refresh_token"`
+  }
+  if err := c.ShouldBindJSON(&req); err != nil || req.RefreshToken == "" {
+    c.JSON(http.StatusBadRequest, gin.H{"error": "refresh token required"})
+    return
+  }
+
+  newAccessToken, newRefreshToken, err := refresh(req.RefreshToken)
+  if err != nil {
+    c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+    return
+  }
+
+  c.JSON(http.StatusOK, gin.H{
+    "access_token":  newAccessToken,
+    "refresh_token": newRefreshToken,
+  })
+}
+
+func LogoutHandler(c *gin.Context) {
+  var req struct {
+    RefreshToken string `json:"refresh_token"`
+  }
+  if err := c.ShouldBindJSON(&req); err != nil || req.RefreshToken == "" {
+    c.JSON(http.StatusBadRequest, gin.H{"error": "refresh token required"})
+    return
+  }
+
+  if err := logout(req.RefreshToken); err != nil {
+    c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+    return
+  }
+  c.Status(http.StatusNoContent)
+}
+
+func main() {
+  r := gin.Default()
+
+  r.POST("/login", LoginHandler)
+  r.POST("/refresh", RefreshHandler)
+  r.POST("/logout", LogoutHandler)
+
+  r.Run(":8080")
+}
+```
