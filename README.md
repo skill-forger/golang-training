@@ -27,7 +27,7 @@ A comprehensive Golang course is designed to take you from a complete beginner t
 - [12. Server (Gin Gonic)](./12.%20Server%20(Gin%20Gonic))
 - [13. Server (Echo)](./13.%20Server%20(Echo))
 - [14. Object Relational Mapping (gorm)](./14.%20Object%20Relational%20Mapping%20(gorm))
-- [15. Authentication and Authorization](./15.%20Authentication%20and%20Authorization)
+- [15. Authentication](15.%20Authentication)
 
 ## How to learn
 
